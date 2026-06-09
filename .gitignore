@@ -1,0 +1,54 @@
+# ===========================
+# OS & Editor
+# ===========================
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+.cursor/
+.nova/
+.zed/
+*.swp
+
+# ===========================
+# Project Documentation (private dev guides)
+# ===========================
+/docs/
+/architecture/
+
+# ===========================
+# Root database folder (Laravel migrations are canonical)
+# ===========================
+/database/
+
+# ===========================
+# Laravel Dashboard
+# ===========================
+/laravel-dashboard/vendor/
+/laravel-dashboard/node_modules/
+/laravel-dashboard/.env
+/laravel-dashboard/.env.backup
+/laravel-dashboard/.env.production
+/laravel-dashboard/storage/*.key
+/laravel-dashboard/storage/logs/
+/laravel-dashboard/storage/pail/
+/laravel-dashboard/bootstrap/cache/
+/laravel-dashboard/public/build/
+/laravel-dashboard/public/hot
+/laravel-dashboard/public/storage
+/laravel-dashboard/public/fonts-manifest.dev.json
+/laravel-dashboard/.phpunit.cache
+/laravel-dashboard/.phpunit.result.cache
+/laravel-dashboard/auth.json
+/laravel-dashboard/_ide_helper.php
+/laravel-dashboard/.phpactor.json
+/laravel-dashboard/.codex/
+/laravel-dashboard/Homestead.json
+/laravel-dashboard/Homestead.yaml
+
+# ===========================
+# Docker & Deployment secrets
+# ===========================
+/docker/.env
+/docker/certbot/
