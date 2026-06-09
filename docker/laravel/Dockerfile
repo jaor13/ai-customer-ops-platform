@@ -1,18 +1,5 @@
 # ─────────────────────────────────────────────
-# Stage 1: Build front-end assets (Vue 3 + Vite)
-# ─────────────────────────────────────────────
-FROM node:20-slim AS frontend
-
-WORKDIR /app
-
-COPY laravel-dashboard/package.json ./
-RUN rm -f package-lock.json && npm install
-
-COPY laravel-dashboard/ .
-RUN rm -f package-lock.json && npm run build
-
-# ─────────────────────────────────────────────
-# Stage 2: Install PHP dependencies
+# Stage 1: Install PHP dependencies
 # ─────────────────────────────────────────────
 FROM composer:2 AS vendor
 
@@ -27,7 +14,7 @@ RUN composer install \
     --optimize-autoloader
 
 # ─────────────────────────────────────────────
-# Stage 3: Production image (PHP-FPM + Nginx)
+# Stage 2: Production image (PHP-FPM + Nginx)
 # ─────────────────────────────────────────────
 FROM php:8.3-fpm-alpine
 
@@ -40,6 +27,8 @@ RUN apk add --no-cache \
     zip \
     unzip \
     curl \
+    nodejs \
+    npm \
     && docker-php-ext-install \
     pdo_pgsql \
     pgsql \
@@ -60,11 +49,14 @@ WORKDIR /var/www/html
 # Copy application code
 COPY laravel-dashboard/ .
 
-# Copy built assets from frontend stage
-COPY --from=frontend /app/public/build public/build
-
 # Copy vendor from composer stage
 COPY --from=vendor /app/vendor vendor
+
+# Install Node dependencies and build assets (needs vendor/ for Ziggy)
+RUN rm -f package-lock.json \
+    && npm install \
+    && npm run build \
+    && rm -rf node_modules
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
