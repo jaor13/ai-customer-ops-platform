@@ -6,7 +6,7 @@ FROM node:20-alpine AS frontend
 WORKDIR /app
 
 COPY laravel-dashboard/package.json laravel-dashboard/package-lock.json ./
-RUN npm ci
+RUN npm install
 
 COPY laravel-dashboard/ .
 RUN npm run build
