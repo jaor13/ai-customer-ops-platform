@@ -1,386 +1,968 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     canLogin: {
         type: Boolean,
     },
-    canRegister: {
-        type: Boolean,
-    },
-    laravelVersion: {
-        type: String,
-        required: true,
-    },
-    phpVersion: {
-        type: String,
-        required: true,
-    },
 });
 
-function handleImageError() {
-    document.getElementById('screenshot-container')?.classList.add('!hidden');
-    document.getElementById('docs-card')?.classList.add('!row-span-1');
-    document.getElementById('docs-card-content')?.classList.add('!flex-row');
-    document.getElementById('background')?.classList.add('!hidden');
-}
+// Interactive Outbox Simulator
+const demoDrafts = ref([
+    {
+        recipient: 'sarah.jenkins@vaporscale.com',
+        subject: 'API Limits & Custom Webhooks',
+        score: 'HOT (97%)',
+        scoreColor: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+        message: 'Hello, does your platform support custom webhooks? We need to route about 10k emails a day.',
+        reply: "Hi Sarah,\n\nYes, we fully support custom webhooks. Our platform integrates with n8n and Laravel, allowing you to route 10k+ emails daily. Would you like to schedule a quick demo this week?\n\nBest,\nAI Ops Team",
+        sourceDoc: 'API_Specs_v2.pdf',
+        confidence: '98% confidence'
+    },
+    {
+        recipient: 'marcus.t@solosaas.io',
+        subject: 'Pre-Seed Startup Discount',
+        score: 'WARM (62%)',
+        scoreColor: 'text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-400 dark:bg-blue-500/10',
+        message: 'Do you guys have any discounts for early stage pre-seed startups?',
+        reply: "Hi Marcus,\n\nThanks for reaching out! We offer a pre-seed startup tier with 40% off our annual plans for the first year. Here is the link to apply...\n\nWarm regards,\nAI Ops Team",
+        sourceDoc: 'Pricing_Sheet.pdf',
+        confidence: '91% confidence'
+    },
+    {
+        recipient: 'dave.miller@nexustech.org',
+        subject: 'Database Sync Timeout error',
+        message: 'Getting sync timeout errors at midnight during heavy load. Any recommendations?',
+        score: 'HOT (85%)',
+        scoreColor: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+        reply: "Hi Dave,\n\nI looked up our knowledge base for sync timeouts. It appears to be related to the midnight cron schedule. Please check the DB connections and retry using our Qdrant sync script. Let us know if this works!\n\nBest,\nAI Ops Support",
+        sourceDoc: 'DB_Tuning_Guide.pdf',
+        confidence: '95% confidence'
+    }
+]);
+
+const activeIndex = ref(0);
+const isProcessing = ref(false);
+const approvedLogCount = ref(1524);
+const showSentBanner = ref(false);
+
+const approveResponse = () => {
+    if (isProcessing.value) return;
+    isProcessing.value = true;
+    
+    setTimeout(() => {
+        isProcessing.value = false;
+        showSentBanner.value = true;
+        approvedLogCount.value++;
+        
+        setTimeout(() => {
+            showSentBanner.value = false;
+            activeIndex.value = (activeIndex.value + 1) % demoDrafts.value.length;
+        }, 1200);
+    }, 1000);
+};
+
+// Bento Grid Toggle States
+const bentoLiveApprovalGate = ref(true);
+
+// Lead Capture Form
+const leadForm = ref({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    message: '',
+});
+const leadFormSubmitting = ref(false);
+const leadFormSuccess = ref(false);
+const leadFormError = ref('');
+
+const submitLeadForm = async () => {
+    leadFormSubmitting.value = true;
+    leadFormSuccess.value = false;
+    leadFormError.value = '';
+
+    try {
+        const response = await fetch('https://n8n.ai-ops.jaor13.app/webhook/lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: leadForm.value.name,
+                email: leadForm.value.email,
+                company: leadForm.value.company,
+                phone: leadForm.value.phone,
+                message: leadForm.value.message,
+                source: 'website',
+            }),
+        });
+
+        if (response.ok) {
+            leadFormSuccess.value = true;
+            leadForm.value = { name: '', email: '', company: '', phone: '', message: '' };
+        } else {
+            leadFormError.value = 'Something went wrong. Please try again.';
+        }
+    } catch (err) {
+        leadFormError.value = 'Unable to reach the server. Please try again later.';
+    } finally {
+        leadFormSubmitting.value = false;
+    }
+};
 </script>
 
 <template>
-    <Head title="Welcome" />
-    <div class="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
-        <img
-            id="background"
-            class="absolute -left-20 top-0 max-w-[877px]"
-            src="https://laravel.com/assets/img/welcome/background.svg"
-        />
-        <div
-            class="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white"
-        >
-            <div class="relative w-full max-w-2xl px-6 lg:max-w-7xl">
-                <header
-                    class="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3"
-                >
-                    <div class="flex lg:col-start-2 lg:justify-center">
-                        <svg
-                            class="h-12 w-auto text-white lg:h-16 lg:text-[#FF2D20]"
-                            viewBox="0 0 62 65"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M61.8548 14.6253C61.8778 14.7102 61.8895 14.7978 61.8897 14.8858V28.5615C61.8898 28.737 61.8434 28.9095 61.7554 29.0614C61.6675 29.2132 61.5409 29.3392 61.3887 29.4265L49.9104 36.0351V49.1337C49.9104 49.4902 49.7209 49.8192 49.4118 49.9987L25.4519 63.7916C25.3971 63.8227 25.3372 63.8427 25.2774 63.8639C25.255 63.8714 25.2338 63.8851 25.2101 63.8913C25.0426 63.9354 24.8666 63.9354 24.6991 63.8913C24.6716 63.8838 24.6467 63.8689 24.6205 63.8589C24.5657 63.8389 24.5084 63.8215 24.456 63.7916L0.501061 49.9987C0.348882 49.9113 0.222437 49.7853 0.134469 49.6334C0.0465019 49.4816 0.000120578 49.3092 0 49.1337L0 8.10652C0 8.01678 0.0124642 7.92953 0.0348998 7.84477C0.0423783 7.8161 0.0598282 7.78993 0.0697995 7.76126C0.0884958 7.70891 0.105946 7.65531 0.133367 7.6067C0.152063 7.5743 0.179485 7.54812 0.20192 7.51821C0.230588 7.47832 0.256763 7.43719 0.290416 7.40229C0.319084 7.37362 0.356476 7.35243 0.388883 7.32751C0.425029 7.29759 0.457436 7.26518 0.498568 7.2415L12.4779 0.345059C12.6296 0.257786 12.8015 0.211853 12.9765 0.211853C13.1515 0.211853 13.3234 0.257786 13.475 0.345059L25.4531 7.2415H25.4556C25.4955 7.26643 25.5292 7.29759 25.5653 7.32626C25.5977 7.35119 25.6339 7.37362 25.6625 7.40104C25.6974 7.43719 25.7224 7.47832 25.7523 7.51821C25.7735 7.54812 25.8021 7.5743 25.8196 7.6067C25.8483 7.65656 25.8645 7.70891 25.8844 7.76126C25.8944 7.78993 25.9118 7.8161 25.9193 7.84602C25.9423 7.93096 25.954 8.01853 25.9542 8.10652V33.7317L35.9355 27.9844V14.8846C35.9355 14.7973 35.948 14.7088 35.9704 14.6253C35.9792 14.5954 35.9954 14.5692 36.0053 14.5405C36.0253 14.4882 36.0427 14.4346 36.0702 14.386C36.0888 14.3536 36.1163 14.3274 36.1375 14.2975C36.1674 14.2576 36.1923 14.2165 36.2272 14.1816C36.2559 14.1529 36.292 14.1317 36.3244 14.1068C36.3618 14.0769 36.3942 14.0445 36.4341 14.0208L48.4147 7.12434C48.5663 7.03694 48.7383 6.99094 48.9133 6.99094C49.0883 6.99094 49.2602 7.03694 49.4118 7.12434L61.3899 14.0208C61.4323 14.0457 61.4647 14.0769 61.5021 14.1055C61.5333 14.1305 61.5694 14.1529 61.5981 14.1803C61.633 14.2165 61.6579 14.2576 61.6878 14.2975C61.7103 14.3274 61.7377 14.3536 61.7551 14.386C61.7838 14.4346 61.8 14.4882 61.8199 14.5405C61.8312 14.5692 61.8474 14.5954 61.8548 14.6253ZM59.893 27.9844V16.6121L55.7013 19.0252L49.9104 22.3593V33.7317L59.8942 27.9844H59.893ZM47.9149 48.5566V37.1768L42.2187 40.4299L25.953 49.7133V61.2003L47.9149 48.5566ZM1.99677 9.83281V48.5566L23.9562 61.199V49.7145L12.4841 43.2219L12.4804 43.2194L12.4754 43.2169C12.4368 43.1945 12.4044 43.1621 12.3682 43.1347C12.3371 43.1097 12.3009 43.0898 12.2735 43.0624L12.271 43.0586C12.2386 43.0275 12.2162 42.9888 12.1887 42.9539C12.1638 42.9203 12.1339 42.8916 12.114 42.8567L12.1127 42.853C12.0903 42.8156 12.0766 42.7707 12.0604 42.7283C12.0442 42.6909 12.023 42.656 12.013 42.6161C12.0005 42.5688 11.998 42.5177 11.9931 42.4691C11.9881 42.4317 11.9781 42.3943 11.9781 42.3569V15.5801L6.18848 12.2446L1.99677 9.83281ZM12.9777 2.36177L2.99764 8.10652L12.9752 13.8513L22.9541 8.10527L12.9752 2.36177H12.9777ZM18.1678 38.2138L23.9574 34.8809V9.83281L19.7657 12.2459L13.9749 15.5801V40.6281L18.1678 38.2138ZM48.9133 9.14105L38.9344 14.8858L48.9133 20.6305L58.8909 14.8846L48.9133 9.14105ZM47.9149 22.3593L42.124 19.0252L37.9323 16.6121V27.9844L43.7219 31.3174L47.9149 33.7317V22.3593ZM24.9533 47.987L39.59 39.631L46.9065 35.4555L36.9352 29.7145L25.4544 36.3242L14.9907 42.3482L24.9533 47.987Z"
-                                fill="currentColor"
-                            />
+    <Head title="AI Customer Ops — Intelligent Operations Platform" />
+
+    <!-- Main Container in Warm Cream Light Theme -->
+    <div class="min-h-screen bg-[#FAF8F5] text-slate-900 font-sans selection:bg-blue-500 selection:text-white overflow-x-hidden">
+        
+        <!-- Elegant Dotted Grid Background -->
+        <div class="absolute inset-0 bg-dot-pattern opacity-[0.7] pointer-events-none" style="-webkit-mask-image: radial-gradient(circle at top, black 50%, transparent 100%); mask-image: radial-gradient(circle at top, black 50%, transparent 100%);"></div>
+
+        <!-- Float Accent Lights (Static to prevent distraction) -->
+        <div class="absolute top-[-10%] left-[10%] h-[500px] w-[500px] rounded-full bg-blue-100/30 blur-[130px] pointer-events-none"></div>
+        <div class="absolute top-[20%] right-[10%] h-[400px] w-[400px] rounded-full bg-indigo-100/20 blur-[100px] pointer-events-none"></div>
+
+        <!-- Header / Navigation -->
+        <nav class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl px-4">
+            <div class="glassmorphism rounded-full border border-slate-200/50 bg-white/70 px-6 py-2.5 shadow-md flex items-center justify-between">
+                <!-- Logo -->
+                <Link href="/" class="flex items-center gap-2.5 group">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform duration-300">
+                        <svg class="h-4.5 w-4.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <polygon points="50,12 88,34 88,78 50,100 12,78 12,34" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
+                            <path d="M50,12 L50,56 L88,78 M50,56 L12,78" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+                            <circle cx="50" cy="56" r="10" fill="currentColor"/>
                         </svg>
                     </div>
-                    <nav v-if="canLogin" class="-mx-3 flex flex-1 justify-end">
+                    <span class="text-xs font-bold font-display uppercase tracking-widest text-slate-900 group-hover:text-blue-600 transition-colors">AI Ops</span>
+                </Link>
+
+                <!-- Nav Links -->
+                <div class="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                    <a href="#how-it-works" class="hover:text-slate-900 transition-colors">How it works</a>
+                    <a href="#features" class="hover:text-slate-900 transition-colors">Features</a>
+                    <a href="#contact" class="hover:text-slate-900 transition-colors">Contact</a>
+                    <a href="https://github.com/jaor13/ai-customer-ops-platform" target="_blank" class="hover:text-slate-900 transition-colors flex items-center gap-1">
+                        GITHUB
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Auth Navigation -->
+                <div v-if="canLogin" class="flex items-center gap-5">
+                    <Link
+                        v-if="$page.props.auth.user"
+                        :href="route('dashboard')"
+                        class="rounded-full bg-blue-600 px-5.5 py-1.5 text-xs font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 hover:bg-blue-700 transition-all duration-300"
+                    >
+                        Go to Dashboard
+                    </Link>
+                    <template v-else>
                         <Link
-                            v-if="$page.props.auth.user"
-                            :href="route('dashboard')"
-                            class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                            :href="route('login')"
+                            class="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors whitespace-nowrap"
                         >
-                            Dashboard
+                            Sign In
                         </Link>
+                        <Link
+                            :href="route('login')"
+                            class="rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-blue-500/25 transition-all duration-300 whitespace-nowrap"
+                        >
+                            Get Started
+                        </Link>
+                    </template>
+                </div>
+            </div>
+        </nav>
 
-                        <template v-else>
+        <!-- Hero Section -->
+        <section class="relative pt-24 pb-16 lg:pt-36 lg:pb-20">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    
+                    <!-- Left Column: Copy -->
+                    <div class="lg:col-span-7 space-y-6 text-center lg:text-left relative">
+                        <!-- Abstract Background Pattern Grid -->
+                        <div class="absolute inset-0 -top-10 left-1/2 lg:left-0 -translate-x-1/2 lg:translate-x-0 w-[500px] h-[300px] opacity-[0.15] pointer-events-none select-none z-[-1] hidden md:block">
+                            <svg class="w-full h-full text-blue-500" viewBox="0 0 600 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M150 50 L300 150 L450 50 M300 150 L300 280" stroke="currentColor" stroke-dasharray="3 3" stroke-width="1.5" />
+                                <circle cx="150" cy="50" r="4" fill="currentColor" />
+                                <circle cx="300" cy="150" r="6" fill="currentColor" />
+                                <circle cx="450" cy="50" r="4" fill="currentColor" />
+                                <path d="M100 150h400M200 220h200" stroke="currentColor" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="2 4" />
+                            </svg>
+                        </div>
+
+                        <!-- Tech Badge -->
+                        <div class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-600">
+                            <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                            INTELLIGENT INTEGRATION
+                        </div>
+
+                        <!-- Clean Geometric Headline -->
+                        <h1 class="text-3xl font-extrabold font-display tracking-tight text-slate-900 sm:text-5xl lg:text-6xl leading-[1.08]">
+                            Go live with AI customer operations <span class="text-blue-600 font-display">this quarter</span>
+                        </h1>
+
+                        <!-- Editorial Subtitle -->
+                        <p class="text-xs sm:text-sm md:text-base text-slate-500 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                            Connect visual workflows, score leads automatically, and construct grounded database answers—retaining full human-in-the-loop validation for every outbound response.
+                        </p>
+
+                        <!-- CTAs -->
+                        <div class="flex items-center justify-center lg:justify-start gap-3 pt-3">
                             <Link
+                                v-if="canLogin && !$page.props.auth.user"
                                 :href="route('login')"
-                                class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                class="rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/10 hover:shadow-blue-600/25 transition-all duration-300"
                             >
-                                Log in
+                                Get started today
                             </Link>
-
-                            <Link
-                                v-if="canRegister"
-                                :href="route('register')"
-                                class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                            <a
+                                href="#how-it-works"
+                                class="rounded-full border border-slate-200 bg-white hover:bg-slate-50 px-6 py-2.5 text-xs font-bold text-slate-600 transition-all duration-300"
                             >
-                                Register
-                            </Link>
-                        </template>
-                    </nav>
-                </header>
+                                Learn more
+                            </a>
+                        </div>
+                    </div>
 
-                <main class="mt-6">
-                    <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
-                        <a
-                            href="https://laravel.com/docs"
-                            id="docs-card"
-                            class="flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] md:row-span-3 lg:p-10 lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                        >
-                            <div
-                                id="screenshot-container"
-                                class="relative flex w-full flex-1 items-stretch"
-                            >
-                                <img
-                                    src="https://laravel.com/assets/img/welcome/docs-light.svg"
-                                    alt="Laravel documentation screenshot"
-                                    class="aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.06)] dark:hidden"
-                                    @error="handleImageError"
-                                />
-                                <img
-                                    src="https://laravel.com/assets/img/welcome/docs-dark.svg"
-                                    alt="Laravel documentation screenshot"
-                                    class="hidden aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.25)] dark:block"
-                                />
-                                <div
-                                    class="absolute -bottom-16 -left-16 h-40 w-[calc(100%+8rem)] bg-gradient-to-b from-transparent via-white to-white dark:via-zinc-900 dark:to-zinc-900"
-                                ></div>
-                            </div>
+                    <!-- Right Column: Premium AI Flow Image Mockup -->
+                    <div class="lg:col-span-5 flex justify-center relative select-none">
+                        <!-- Background Grid pattern overlay -->
+                        <div class="absolute inset-0 -top-4 -left-4 bg-grid-pattern opacity-40 rounded-3xl border border-slate-200/50 pointer-events-none z-0"></div>
 
-                            <div
-                                class="relative flex items-center gap-6 lg:items-end"
-                            >
-                                <div
-                                    id="docs-card-content"
-                                    class="flex items-start gap-6 lg:flex-col"
-                                >
-                                    <div
-                                        class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16"
-                                    >
-                                        <svg
-                                            class="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                fill="#FF2D20"
-                                                d="M23 4a1 1 0 0 0-1.447-.894L12.224 7.77a.5.5 0 0 1-.448 0L2.447 3.106A1 1 0 0 0 1 4v13.382a1.99 1.99 0 0 0 1.105 1.79l9.448 4.728c.14.065.293.1.447.1.154-.005.306-.04.447-.105l9.453-4.724a1.99 1.99 0 0 0 1.1-1.789V4ZM3 6.023a.25.25 0 0 1 .362-.223l7.5 3.75a.251.251 0 0 1 .138.223v11.2a.25.25 0 0 1-.362.224l-7.5-3.75a.25.25 0 0 1-.138-.22V6.023Zm18 11.2a.25.25 0 0 1-.138.224l-7.5 3.75a.249.249 0 0 1-.329-.099.249.249 0 0 1-.033-.12V9.772a.251.251 0 0 1 .138-.224l7.5-3.75a.25.25 0 0 1 .362.224v11.2Z"
-                                            />
-                                            <path
-                                                fill="#FF2D20"
-                                                d="m3.55 1.893 8 4.048a1.008 1.008 0 0 0 .9 0l8-4.048a1 1 0 0 0-.9-1.785l-7.322 3.706a.506.506 0 0 1-.452 0L4.454.108a1 1 0 0 0-.9 1.785H3.55Z"
-                                            />
-                                        </svg>
-                                    </div>
-
-                                    <div class="pt-3 sm:pt-5 lg:pt-0">
-                                        <h2
-                                            class="text-xl font-semibold text-black dark:text-white"
-                                        >
-                                            Documentation
-                                        </h2>
-
-                                        <p class="mt-4 text-sm/relaxed">
-                                            Laravel has wonderful documentation
-                                            covering every aspect of the
-                                            framework. Whether you are a
-                                            newcomer or have prior experience
-                                            with Laravel, we recommend reading
-                                            our documentation from beginning to
-                                            end.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <svg
-                                    class="size-6 shrink-0 stroke-[#FF2D20]"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                    />
-                                </svg>
-                            </div>
-                        </a>
-
-                        <a
-                            href="https://laracasts.com"
-                            class="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                        >
-                            <div
-                                class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16"
-                            >
-                                <svg
-                                    class="size-5 sm:size-6"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <g fill="#FF2D20">
-                                        <path
-                                            d="M24 8.25a.5.5 0 0 0-.5-.5H.5a.5.5 0 0 0-.5.5v12a2.5 2.5 0 0 0 2.5 2.5h19a2.5 2.5 0 0 0 2.5-2.5v-12Zm-7.765 5.868a1.221 1.221 0 0 1 0 2.264l-6.626 2.776A1.153 1.153 0 0 1 8 18.123v-5.746a1.151 1.151 0 0 1 1.609-1.035l6.626 2.776ZM19.564 1.677a.25.25 0 0 0-.177-.427H15.6a.106.106 0 0 0-.072.03l-4.54 4.543a.25.25 0 0 0 .177.427h3.783c.027 0 .054-.01.073-.03l4.543-4.543ZM22.071 1.318a.047.047 0 0 0-.045.013l-4.492 4.492a.249.249 0 0 0 .038.385.25.25 0 0 0 .14.042h5.784a.5.5 0 0 0 .5-.5v-2a2.5 2.5 0 0 0-1.925-2.432ZM13.014 1.677a.25.25 0 0 0-.178-.427H9.101a.106.106 0 0 0-.073.03l-4.54 4.543a.25.25 0 0 0 .177.427H8.4a.106.106 0 0 0 .073-.03l4.54-4.543ZM6.513 1.677a.25.25 0 0 0-.177-.427H2.5A2.5 2.5 0 0 0 0 3.75v2a.5.5 0 0 0 .5.5h1.4a.106.106 0 0 0 .073-.03l4.54-4.543Z"
-                                        />
-                                    </g>
-                                </svg>
-                            </div>
-
-                            <div class="pt-3 sm:pt-5">
-                                <h2
-                                    class="text-xl font-semibold text-black dark:text-white"
-                                >
-                                    Laracasts
-                                </h2>
-
-                                <p class="mt-4 text-sm/relaxed">
-                                    Laracasts offers thousands of video
-                                    tutorials on Laravel, PHP, and JavaScript
-                                    development. Check them out, see for
-                                    yourself, and massively level up your
-                                    development skills in the process.
-                                </p>
-                            </div>
-
-                            <svg
-                                class="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                />
-                            </svg>
-                        </a>
-
-                        <a
-                            href="https://laravel-news.com"
-                            class="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                        >
-                            <div
-                                class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16"
-                            >
-                                <svg
-                                    class="size-5 sm:size-6"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <g fill="#FF2D20">
-                                        <path
-                                            d="M8.75 4.5H5.5c-.69 0-1.25.56-1.25 1.25v4.75c0 .69.56 1.25 1.25 1.25h3.25c.69 0 1.25-.56 1.25-1.25V5.75c0-.69-.56-1.25-1.25-1.25Z"
-                                        />
-                                        <path
-                                            d="M24 10a3 3 0 0 0-3-3h-2V2.5a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2V20a3.5 3.5 0 0 0 3.5 3.5h17A3.5 3.5 0 0 0 24 20V10ZM3.5 21.5A1.5 1.5 0 0 1 2 20V3a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 .5.5v17c0 .295.037.588.11.874a.5.5 0 0 1-.484.625L3.5 21.5ZM22 20a1.5 1.5 0 1 1-3 0V9.5a.5.5 0 0 1 .5-.5H21a1 1 0 0 1 1 1v10Z"
-                                        />
-                                        <path
-                                            d="M12.751 6.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 7.3v-.5a.75.75 0 0 1 .751-.753ZM12.751 10.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 11.3v-.5a.75.75 0 0 1 .751-.753ZM4.751 14.047h10a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-10A.75.75 0 0 1 4 15.3v-.5a.75.75 0 0 1 .751-.753ZM4.75 18.047h7.5a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-7.5A.75.75 0 0 1 4 19.3v-.5a.75.75 0 0 1 .75-.753Z"
-                                        />
-                                    </g>
-                                </svg>
-                            </div>
-
-                            <div class="pt-3 sm:pt-5">
-                                <h2
-                                    class="text-xl font-semibold text-black dark:text-white"
-                                >
-                                    Laravel News
-                                </h2>
-
-                                <p class="mt-4 text-sm/relaxed">
-                                    Laravel News is a community driven portal
-                                    and newsletter aggregating all of the latest
-                                    and most important news in the Laravel
-                                    ecosystem, including new package releases
-                                    and tutorials.
-                                </p>
-                            </div>
-
-                            <svg
-                                class="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                />
-                            </svg>
-                        </a>
-
-                        <div
-                            class="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800"
-                        >
-                            <div
-                                class="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16"
-                            >
-                                <svg
-                                    class="size-5 sm:size-6"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <g fill="#FF2D20">
-                                        <path
-                                            d="M16.597 12.635a.247.247 0 0 0-.08-.237 2.234 2.234 0 0 1-.769-1.68c.001-.195.03-.39.084-.578a.25.25 0 0 0-.09-.267 8.8 8.8 0 0 0-4.826-1.66.25.25 0 0 0-.268.181 2.5 2.5 0 0 1-2.4 1.824.045.045 0 0 0-.045.037 12.255 12.255 0 0 0-.093 3.86.251.251 0 0 0 .208.214c2.22.366 4.367 1.08 6.362 2.118a.252.252 0 0 0 .32-.079 10.09 10.09 0 0 0 1.597-3.733ZM13.616 17.968a.25.25 0 0 0-.063-.407A19.697 19.697 0 0 0 8.91 15.98a.25.25 0 0 0-.287.325c.151.455.334.898.548 1.328.437.827.981 1.594 1.619 2.28a.249.249 0 0 0 .32.044 29.13 29.13 0 0 0 2.506-1.99ZM6.303 14.105a.25.25 0 0 0 .265-.274 13.048 13.048 0 0 1 .205-4.045.062.062 0 0 0-.022-.07 2.5 2.5 0 0 1-.777-.982.25.25 0 0 0-.271-.149 11 11 0 0 0-5.6 2.815.255.255 0 0 0-.075.163c-.008.135-.02.27-.02.406.002.8.084 1.598.246 2.381a.25.25 0 0 0 .303.193 19.924 19.924 0 0 1 5.746-.438ZM9.228 20.914a.25.25 0 0 0 .1-.393 11.53 11.53 0 0 1-1.5-2.22 12.238 12.238 0 0 1-.91-2.465.248.248 0 0 0-.22-.187 18.876 18.876 0 0 0-5.69.33.249.249 0 0 0-.179.336c.838 2.142 2.272 4 4.132 5.353a.254.254 0 0 0 .15.048c1.41-.01 2.807-.282 4.117-.802ZM18.93 12.957l-.005-.008a.25.25 0 0 0-.268-.082 2.21 2.21 0 0 1-.41.081.25.25 0 0 0-.217.2c-.582 2.66-2.127 5.35-5.75 7.843a.248.248 0 0 0-.09.299.25.25 0 0 0 .065.091 28.703 28.703 0 0 0 2.662 2.12.246.246 0 0 0 .209.037c2.579-.701 4.85-2.242 6.456-4.378a.25.25 0 0 0 .048-.189 13.51 13.51 0 0 0-2.7-6.014ZM5.702 7.058a.254.254 0 0 0 .2-.165A2.488 2.488 0 0 1 7.98 5.245a.093.093 0 0 0 .078-.062 19.734 19.734 0 0 1 3.055-4.74.25.25 0 0 0-.21-.41 12.009 12.009 0 0 0-10.4 8.558.25.25 0 0 0 .373.281 12.912 12.912 0 0 1 4.826-1.814ZM10.773 22.052a.25.25 0 0 0-.28-.046c-.758.356-1.55.635-2.365.833a.25.25 0 0 0-.022.48c1.252.43 2.568.65 3.893.65.1 0 .2 0 .3-.008a.25.25 0 0 0 .147-.444c-.526-.424-1.1-.917-1.673-1.465ZM18.744 8.436a.249.249 0 0 0 .15.228 2.246 2.246 0 0 1 1.352 2.054c0 .337-.08.67-.23.972a.25.25 0 0 0 .042.28l.007.009a15.016 15.016 0 0 1 2.52 4.6.25.25 0 0 0 .37.132.25.25 0 0 0 .096-.114c.623-1.464.944-3.039.945-4.63a12.005 12.005 0 0 0-5.78-10.258.25.25 0 0 0-.373.274c.547 2.109.85 4.274.901 6.453ZM9.61 5.38a.25.25 0 0 0 .08.31c.34.24.616.561.8.935a.25.25 0 0 0 .3.127.631.631 0 0 1 .206-.034c2.054.078 4.036.772 5.69 1.991a.251.251 0 0 0 .267.024c.046-.024.093-.047.141-.067a.25.25 0 0 0 .151-.23A29.98 29.98 0 0 0 15.957.764a.25.25 0 0 0-.16-.164 11.924 11.924 0 0 0-2.21-.518.252.252 0 0 0-.215.076A22.456 22.456 0 0 0 9.61 5.38Z"
-                                        />
-                                    </g>
-                                </svg>
-                            </div>
-
-                            <div class="pt-3 sm:pt-5">
-                                <h2
-                                    class="text-xl font-semibold text-black dark:text-white"
-                                >
-                                    Vibrant Ecosystem
-                                </h2>
-
-                                <p class="mt-4 text-sm/relaxed">
-                                    Laravel's robust library of first-party
-                                    tools and libraries, such as
-                                    <a
-                                        href="https://forge.laravel.com"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white dark:focus-visible:ring-[#FF2D20]"
-                                        >Forge</a
-                                    >,
-                                    <a
-                                        href="https://vapor.laravel.com"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Vapor</a
-                                    >,
-                                    <a
-                                        href="https://nova.laravel.com"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Nova</a
-                                    >,
-                                    <a
-                                        href="https://envoyer.io"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Envoyer</a
-                                    >, and
-                                    <a
-                                        href="https://herd.laravel.com"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Herd</a
-                                    >
-                                    help you take your projects to the next
-                                    level. Pair them with powerful open source
-                                    libraries like
-                                    <a
-                                        href="https://laravel.com/docs/billing"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Cashier</a
-                                    >,
-                                    <a
-                                        href="https://laravel.com/docs/dusk"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Dusk</a
-                                    >,
-                                    <a
-                                        href="https://laravel.com/docs/broadcasting"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Echo</a
-                                    >,
-                                    <a
-                                        href="https://laravel.com/docs/horizon"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Horizon</a
-                                    >,
-                                    <a
-                                        href="https://laravel.com/docs/sanctum"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Sanctum</a
-                                    >,
-                                    <a
-                                        href="https://laravel.com/docs/telescope"
-                                        class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                        >Telescope</a
-                                    >, and more.
-                                </p>
+                        <!-- Glassmorphic Image Card Container -->
+                        <div class="relative z-10 p-3 rounded-3xl bg-white/70 border border-slate-200/50 shadow-2xl animate-float max-w-sm overflow-hidden hover:scale-105 transition-all duration-500">
+                            <img src="/images/ai_flow_mockup.png" alt="AI Operations Flow diagram" class="rounded-2xl border border-slate-200/40 w-full object-cover shadow-sm bg-white" />
+                            
+                            <!-- Floating mini-badge over image -->
+                            <div class="absolute bottom-6 right-6 glassmorphism rounded-xl border border-slate-200/50 p-2 shadow-lg flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-[9px] font-bold font-mono text-slate-900">PIPELINE ACTIVE</span>
                             </div>
                         </div>
                     </div>
-                </main>
 
-                <footer
-                    class="py-16 text-center text-sm text-black dark:text-white/70"
-                >
-                    Laravel v{{ laravelVersion }} (PHP v{{ phpVersion }})
-                </footer>
+                </div>
+
+                <!-- Grayscale Integration Cloud (Directly below hero) -->
+                <div class="mt-16 border-t border-slate-200/50 pt-8 max-w-4xl mx-auto">
+                    <p class="text-center text-[9px] font-mono font-bold uppercase tracking-widest text-slate-400">OUT-OF-THE-BOX INTEGRATION CHANNELS</p>
+                    <div class="mt-6 flex flex-wrap items-center justify-center gap-x-12 gap-y-6 opacity-35 hover:opacity-55 transition-opacity duration-300">
+                        <span class="text-xs font-bold font-mono tracking-widest text-slate-900">SALESFORCE</span>
+                        <span class="text-xs font-bold font-mono tracking-widest text-slate-900">HUBSPOT</span>
+                        <span class="text-xs font-bold font-mono tracking-widest text-slate-900">ZENDESK</span>
+                        <span class="text-xs font-bold font-mono tracking-widest text-slate-900">SLACK</span>
+                        <span class="text-xs font-bold font-mono tracking-widest text-slate-900">GMAIL API</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <!-- "How it works" Dual-Panel Section -->
+        <section id="how-it-works" class="py-16 md:py-24 border-t border-slate-200/40 relative">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+                    
+                    <!-- Left Column: Step timeline -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="space-y-2">
+                            <span class="text-[10px] font-mono font-bold tracking-widest text-blue-600 uppercase">PROCESSING STORYBOARD</span>
+                            <h2 class="text-3xl font-extrabold font-display text-slate-900 tracking-tight">How it works.</h2>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Deploy custom workflows from your platform with ease by routing incoming inquiries directly through our validation APIs.
+                            </p>
+                        </div>
+
+                        <!-- Vertical Stack of Storyboard Cards -->
+                        <div class="space-y-4 relative">
+                            <!-- Vertical track line behind cards -->
+                            <div class="absolute left-8 top-8 bottom-8 w-0.5 border-l border-dashed border-slate-200 pointer-events-none"></div>
+
+                            <!-- Card 1 -->
+                            <div class="relative group bg-white/80 border border-slate-200/50 shadow-sm p-4 rounded-2xl flex items-start gap-4 transition-all duration-300 hover:shadow-md hover:border-blue-500/20 hover:bg-white">
+                                <!-- Step SVG Icon -->
+                                <div class="relative z-10 shrink-0">
+                                    <svg class="h-10 w-10 text-blue-600" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="48" height="48" rx="10" fill="#eff6ff" />
+                                        <path d="M12 16h24v18H12z" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round" />
+                                        <path d="M12 18l12 9 12-9" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round" />
+                                        <circle cx="24" cy="30" r="3" fill="#2563eb" />
+                                        <path d="M6 24h6M36 24h6" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="2 2" />
+                                    </svg>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-mono font-extrabold tracking-widest text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">01 / INTAKE</span>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-slate-950">Issue credentials & connect intake</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Link incoming customer emails, webhooks, or ticketing APIs straight into the queue.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Card 2 -->
+                            <div class="relative group bg-white/80 border border-slate-200/50 shadow-sm p-4 rounded-2xl flex items-start gap-4 transition-all duration-300 hover:shadow-md hover:border-indigo-500/20 hover:bg-white">
+                                <div class="relative z-10 shrink-0">
+                                    <svg class="h-10 w-10 text-indigo-600" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="48" height="48" rx="10" fill="#f5f3ff" />
+                                        <path d="M14 12h20v24H14z" stroke="#6366f1" stroke-width="1.5" />
+                                        <path d="M18 18h12M18 24h12" stroke="#818cf8" stroke-width="1.5" />
+                                        <line x1="10" y1="28" x2="38" y2="28" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" />
+                                        <rect x="28" y="28" width="12" height="6" rx="2" fill="#818cf8" />
+                                    </svg>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-mono font-extrabold tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded">02 / TRIAGE</span>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-slate-950">AI enrichment & priority triaging</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        GPT-4o checks demographics, analyzes message intent, and applies priority tags.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Card 3 -->
+                            <div class="relative group bg-white/80 border border-slate-200/50 shadow-sm p-4 rounded-2xl flex items-start gap-4 transition-all duration-300 hover:shadow-md hover:border-violet-500/20 hover:bg-white">
+                                <div class="relative z-10 shrink-0">
+                                    <svg class="h-10 w-10 text-violet-600" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="48" height="48" rx="10" fill="#faf5ff" />
+                                        <circle cx="24" cy="24" r="4" fill="#8b5cf6" />
+                                        <circle cx="14" cy="14" r="3" stroke="#a78bfa" stroke-width="1.5" />
+                                        <circle cx="34" cy="14" r="3" stroke="#a78bfa" stroke-width="1.5" />
+                                        <circle cx="14" cy="34" r="3" stroke="#a78bfa" stroke-width="1.5" />
+                                        <circle cx="34" cy="34" r="3" stroke="#a78bfa" stroke-width="1.5" />
+                                        <line x1="17" y1="17" x2="21" y2="21" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="2 1" />
+                                        <line x1="31" y1="17" x2="27" y2="21" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="2 1" />
+                                        <line x1="17" y1="31" x2="21" y2="27" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="2 1" />
+                                        <line x1="31" y1="31" x2="27" y2="27" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="2 1" />
+                                    </svg>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-mono font-extrabold tracking-widest text-violet-600 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded">03 / RETRIEVE</span>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-slate-950">Knowledge-base RAG synthesis</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Search indices in Qdrant fetch document data to build factual outbound response drafts.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Card 4 -->
+                            <div class="relative group bg-white/80 border border-slate-200/50 shadow-sm p-4 rounded-2xl flex items-start gap-4 transition-all duration-300 hover:shadow-md hover:border-emerald-500/20 hover:bg-white">
+                                <div class="relative z-10 shrink-0">
+                                    <svg class="h-10 w-10 text-emerald-600" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="48" height="48" rx="10" fill="#ecfdf5" />
+                                        <rect x="16" y="10" width="16" height="28" rx="3" stroke="#10b981" stroke-width="1.5" />
+                                        <circle cx="24" cy="24" r="7" fill="#34d399" fill-opacity="0.2" />
+                                        <path d="M20 24l3 3 6-6" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-mono font-extrabold tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">04 / DISPATCH</span>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-slate-950">Human approval dispatch</h4>
+                                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                                        Your support staff reviews the pre-composed response, edits if necessary, and dispatches it.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Interactive Browser Dashboard Mockup (Beige/Grid backdrop) -->
+                    <div class="lg:col-span-7 relative animate-float">
+                        <!-- Tiny grid layout behind mockup card -->
+                        <div class="absolute inset-0 -top-6 -left-6 bg-grid-pattern opacity-60 rounded-2xl border border-slate-200 pointer-events-none"></div>
+
+                        <!-- Interactive Form Card Mockup -->
+                        <div class="relative z-10 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl select-none">
+                            
+                            <!-- Card Header -->
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                                <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-blue-600"></span>
+                                    Pending Approval
+                                </span>
+                                <div class="flex gap-2">
+                                    <span v-for="(draft, idx) in demoDrafts" :key="idx" 
+                                        @click="activeIndex = idx"
+                                        :class="[activeIndex === idx ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200', 'px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition']"
+                                    >
+                                        Lead {{ idx + 1 }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Success Banner -->
+                            <div v-if="showSentBanner" class="mb-4 bg-emerald-50 border border-emerald-100 text-emerald-700 p-2.5 rounded-xl text-center text-xs font-medium animate-bounce flex items-center justify-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                Email dispatched via visual API hook!
+                            </div>
+
+                            <!-- Form Details -->
+                            <div class="space-y-4">
+                                <!-- Recipient -->
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Recipient</label>
+                                    <div class="mt-1 text-xs font-semibold text-slate-900 border-b border-slate-100 pb-1.5">
+                                        {{ demoDrafts[activeIndex].recipient }}
+                                    </div>
+                                </div>
+
+                                <!-- Lead Evaluation Score -->
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Triage Classification</label>
+                                    <div class="mt-1 flex items-center justify-between">
+                                        <span class="text-xs font-bold text-slate-800">{{ demoDrafts[activeIndex].subject }}</span>
+                                        <span :class="['text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md border', demoDrafts[activeIndex].scoreColor]">
+                                            Score: {{ demoDrafts[activeIndex].score }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- AI Draft Reply -->
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Drafted Response</label>
+                                    <div class="mt-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-700 leading-relaxed font-mono whitespace-pre-line">
+                                        {{ demoDrafts[activeIndex].reply }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Footer Actions -->
+                            <div class="mt-5 border-t border-slate-100 pt-4 flex items-center justify-between">
+                                <span class="text-[9px] font-mono text-slate-400">Approved Logs: {{ approvedLogCount }}</span>
+                                <div class="flex gap-2.5">
+                                    <button 
+                                        @click="activeIndex = (activeIndex + 1) % demoDrafts.length"
+                                        class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition"
+                                    >
+                                        Skip
+                                    </button>
+                                    <button 
+                                        @click="approveResponse"
+                                        :disabled="isProcessing"
+                                        class="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-white flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                                    >
+                                        <svg v-if="isProcessing" class="h-3 w-3 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>{{ isProcessing ? 'Sending...' : 'Approve & Send' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Support Floating Widget overlay in the corner -->
+                            <div class="absolute -bottom-8 -right-6 glassmorphism rounded-xl border border-slate-200/50 p-2.5 shadow-lg max-w-[200px] flex items-start gap-2 animate-float">
+                                <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs shrink-0 font-bold font-mono">Q</div>
+                                <div>
+                                    <div class="text-[9px] font-bold text-slate-900 uppercase">Vector Grounding</div>
+                                    <div class="text-[8px] text-slate-500 leading-tight mt-0.5">Matched {{ demoDrafts[activeIndex].sourceDoc }} ({{ demoDrafts[activeIndex].confidence }})</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- DOSS-style Dark Wireframe Grid Section (Masters of perspective) -->
+        <section class="py-20 bg-slate-950 text-white relative border-t border-b border-slate-900 overflow-hidden">
+            <!-- 3D Perspective Grid Background (DOSS style) -->
+            <div class="absolute inset-0 w-full h-full perspective-grid opacity-30 pointer-events-none">
+                <div class="w-full h-[200%] perspective-grid-inner"></div>
+            </div>
+
+            <!-- Glowing light orbs -->
+            <div class="absolute top-[30%] left-[25%] h-[350px] w-[350px] rounded-full bg-blue-500/5 blur-[90px] pointer-events-none"></div>
+
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 relative z-10 flex flex-col items-center text-center">
+                <div class="max-w-2xl">
+                    <span class="text-[10px] font-mono font-bold tracking-widest text-blue-500 uppercase block mb-3">VECTOR KNOWLEDGE SYNC</span>
+                    <h2 class="text-3xl font-extrabold font-display text-white sm:text-4xl tracking-tight leading-tight">
+                        RAG Grounding pipeline evolved
+                    </h2>
+                    <p class="mt-4 text-xs md:text-sm text-slate-400 leading-relaxed">
+                        Watch how files uploaded to your admin console automatically break into chunked vector embeddings, storing directly in Qdrant database nodes.
+                    </p>
+                </div>
+
+                <!-- Isometric block visualization using inline SVG with 3D Float Animations -->
+                <div class="mt-12 w-full max-w-sm hover:scale-105 transition-transform duration-500">
+                    <svg viewBox="0 0 400 370" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full">
+                        <!-- Top Floating wireframe ball -->
+                        <g class="animate-float-top">
+                            <circle cx="200" cy="18" r="8" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="2 2" fill="none" />
+                            <line x1="200" y1="26" x2="200" y2="45" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3 3" />
+                        </g>
+                        
+                        <!-- Top Isometric Box (Ingestion layer - Float Top) -->
+                        <g class="animate-float-top">
+                            <path d="M200 45 L320 85 L200 125 L80 85 Z" fill="#2563eb" fill-opacity="0.9" stroke="#3b82f6" stroke-width="1.5" />
+                            <path d="M80 85 L80 110 L200 150 L200 125 Z" fill="#1d4ed8" fill-opacity="0.95" stroke="#3b82f6" stroke-width="1.5" />
+                            <path d="M200 125 L200 150 L320 110 L320 85 Z" fill="#1e40af" fill-opacity="0.95" stroke="#3b82f6" stroke-width="1.5" />
+                            <text x="200" y="90" fill="#ffffff" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold" letter-spacing="1">QDRANT RAG</text>
+                        </g>
+                        
+                        <!-- Middle Isometric Box (Triage layer - Float Mid) -->
+                        <g class="animate-float-mid">
+                            <path d="M200 120 L320 160 L200 200 L80 160 Z" fill="#3b82f6" fill-opacity="0.8" stroke="#60a5fa" stroke-width="1.5" />
+                            <path d="M80 160 L80 185 L200 225 L200 200 Z" fill="#2563eb" fill-opacity="0.85" stroke="#60a5fa" stroke-width="1.5" />
+                            <path d="M200 200 L200 225 L320 185 L320 160 Z" fill="#1d4ed8" fill-opacity="0.85" stroke="#60a5fa" stroke-width="1.5" />
+                            <text x="200" y="165" fill="#ffffff" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold" letter-spacing="1">CLASSIFICATION</text>
+                        </g>
+
+                        <!-- Bottom Isometric Box (Webhook layer - Float Bot) -->
+                        <g class="animate-float-bot">
+                            <path d="M200 195 L320 235 L200 275 L80 235 Z" fill="#60a5fa" fill-opacity="0.7" stroke="#93c5fd" stroke-width="1.5" />
+                            <path d="M80 235 L80 260 L200 300 L200 275 Z" fill="#3b82f6" fill-opacity="0.75" stroke="#93c5fd" stroke-width="1.5" />
+                            <path d="M200 275 L200 300 L320 260 L320 235 Z" fill="#2563eb" fill-opacity="0.75" stroke="#93c5fd" stroke-width="1.5" />
+                            <text x="200" y="240" fill="#ffffff" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold" letter-spacing="1">WEBHOOK INTAKE</text>
+                        </g>
+
+                        <!-- Ground rings -->
+                        <ellipse cx="200" cy="330" rx="140" ry="25" stroke="#2563eb" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="4 4" />
+                        <ellipse cx="200" cy="330" rx="100" ry="18" stroke="#3b82f6" stroke-opacity="0.4" stroke-width="1.2" />
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bento Grid Features Section -->
+        <section id="features" class="py-16 md:py-24 border-t border-slate-200/40 relative">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 relative z-10">
+                <div class="text-center max-w-xl mx-auto mb-16">
+                    <h2 class="text-3xl font-extrabold font-display text-slate-900 tracking-tight leading-tight">
+                        Powering enterprise class operations
+                    </h2>
+                    <p class="mt-3 text-xs md:text-sm text-slate-500 leading-relaxed">
+                        Unleashing speed and automation. AI does the background work while you retain authorization keys.
+                    </p>
+                </div>
+ 
+                <!-- Bento Grid Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Feature: Lead Scoring (Large column span) -->
+                    <div class="md:col-span-2 group rounded-2xl border border-slate-200/60 bg-white hover:shadow-lg hover:border-blue-500/20 p-8 transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 mb-6 group-hover:scale-105 transition-transform duration-300">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2C6.5 6.5 4 10.5 4 14.5C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14.5C20 10.5 17.5 6.5 12 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                    <path d="M12 8C9.5 10.5 8 13 8 15C8 17 9.8 18.5 12 18.5C14.2 18.5 16 17 16 15C16 13 14.5 10.5 12 8Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900">Prospect Intelligence</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed max-w-md">
+                                Score prospects automatically based on domain firmographic data and incoming email intent parameters. Filter out spam and route VIPs to senior executives immediately.
+                            </p>
+                        </div>
+                        <div class="mt-8 space-y-2.5 border-t border-slate-100 pt-5">
+                            <div class="flex items-center justify-between text-xs bg-slate-50 border border-slate-100/60 p-2.5 rounded-xl">
+                                <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                    sarah.j@vaporscale.com
+                                </span>
+                                <span class="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Enterprise - 98 Score</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs bg-slate-50 border border-slate-100/60 p-2.5 rounded-xl">
+                                <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                                    marcus.t@solosaas.io
+                                </span>
+                                <span class="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Mid-Market - 82 Score</span>
+                            </div>
+                        </div>
+                    </div>
+ 
+                    <!-- Feature: Email Triage -->
+                    <div class="group rounded-2xl border border-slate-200/60 bg-white hover:shadow-lg hover:border-blue-500/20 p-8 transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 mb-6 group-hover:scale-105 transition-transform duration-300">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="1.8" />
+                                    <path d="M7 8h10M7 12h10M7 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    <circle cx="17" cy="16" r="3" fill="currentColor" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900">Email Triage Classification</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed">
+                                Classify incoming emails by category and priority. Automatically assign tags (Tech, Sales, Billing).
+                            </p>
+                        </div>
+                        <div class="mt-6 space-y-2 pt-4 border-t border-slate-100">
+                            <div class="text-[9px] font-mono font-bold text-slate-400 uppercase">Triage Output</div>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded-xl border border-amber-100/70">Category: Technical</span>
+                                <span class="text-[10px] font-bold bg-rose-50 text-rose-700 px-2 py-1 rounded-xl border border-rose-100/70">Priority: High</span>
+                            </div>
+                        </div>
+                    </div>
+ 
+                    <!-- Feature: RAG Knowledge Base -->
+                    <div class="group rounded-2xl border border-slate-200/60 bg-white hover:shadow-lg hover:border-blue-500/20 p-8 transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 mb-6 group-hover:scale-105 transition-transform duration-300">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.8" />
+                                    <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+                                    <path d="M12 4v4M12 16v4M4 12h4M16 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900">RAG Vector Retrieval</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed">
+                                Upload support manuals or database files to build response drafts based on accurate data.
+                            </p>
+                        </div>
+                        <div class="mt-6 bg-slate-50 border border-slate-100 rounded-xl p-3 text-[10px] font-mono text-slate-500 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span>Vector database match</span>
+                                <span class="text-emerald-600 font-bold">94% Confidence</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full w-[94%]"></div>
+                            </div>
+                        </div>
+                    </div>
+ 
+                    <!-- Feature: Human Approval (Large column span) -->
+                    <div class="md:col-span-2 group rounded-2xl border border-slate-200/60 bg-white hover:shadow-lg hover:border-blue-500/20 p-8 transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-6 group-hover:scale-105 transition-transform duration-300">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900">Human-in-the-Loop Safeguard</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed max-w-md">
+                                Keep an absolute check on outbound email dispatches. Toggle the interactive status switch below to see it function live.
+                            </p>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/60 rounded-2xl shadow-inner">
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200 shadow-sm">
+                                    <span :class="['h-2 w-2 rounded-full', bentoLiveApprovalGate ? 'bg-emerald-500' : 'bg-slate-400']"></span>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-slate-900 uppercase">Approval Gate</div>
+                                    <div class="text-[9px] text-slate-400 font-bold font-mono">{{ bentoLiveApprovalGate ? 'ACTIVE CONTROL' : 'BYPASS ACTIVE' }}</div>
+                                </div>
+                            </div>
+                            <button 
+                                @click="bentoLiveApprovalGate = !bentoLiveApprovalGate"
+                                :class="[bentoLiveApprovalGate ? 'bg-blue-600 shadow-md shadow-blue-500/10 hover:bg-blue-700' : 'bg-slate-800 hover:bg-slate-700', 'px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all active:scale-95']"
+                            >
+                                {{ bentoLiveApprovalGate ? 'Restrict' : 'Enable' }}
+                            </button>
+                        </div>
+                    </div>
+ 
+                    <!-- Feature: Workflow Automation -->
+                    <div class="group rounded-2xl border border-slate-200/60 bg-white hover:shadow-lg hover:border-blue-500/20 p-8 transition-all duration-300 flex flex-col justify-between">
+                        <div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 mb-6 group-hover:scale-105 transition-transform duration-300">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2" />
+                                    <path d="M12 8a4 4 0 100 8 4 4 0 000-8z" fill="currentColor" />
+                                </svg>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-900">n8n Automation</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed">
+                                Deploy visual workflows that integrate CRM tables, email servers, and LLM triage nodes.
+                            </p>
+                        </div>
+                        <div class="mt-6 flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Webhook Target</span>
+                            <span class="text-[9px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 flex items-center gap-1">
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                ACTIVE NODE
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lead Capture Form Section -->
+        <section id="contact" class="py-16 md:py-24 border-t border-slate-200/40 relative">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                    <!-- Left: Copy -->
+                    <div class="space-y-6">
+                        <div class="space-y-4">
+                            <span class="text-[10px] font-mono font-bold tracking-widest text-blue-600 uppercase">GET IN TOUCH</span>
+                            <h2 class="text-3xl font-extrabold font-display text-slate-900 tracking-tight leading-tight">
+                                See it in action
+                            </h2>
+                            <p class="text-xs md:text-sm text-slate-500 leading-relaxed max-w-md">
+                                Submit your info below. This form posts directly to our n8n webhook — your lead will be scored by AI in real-time and appear in the admin dashboard instantly.
+                            </p>
+                        </div>
+
+                        <!-- Visual Webhook Pipeline Diagram -->
+                        <div class="p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm relative overflow-hidden select-none">
+                            <div class="absolute inset-0 bg-dot-pattern opacity-40 pointer-events-none"></div>
+                            <div class="relative z-10 flex items-center justify-between gap-1.5 max-w-md mx-auto">
+                                
+                                <!-- Node 1: Form Submit -->
+                                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                                    <div class="h-9 w-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                                        <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M19 4H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM7 8h10M7 12h10M7 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-[8px] font-bold font-mono text-slate-400 uppercase">1. SUBMIT</span>
+                                </div>
+
+                                <!-- Connector Line 1 -->
+                                <div class="flex-1 h-0.5 border-t border-dashed border-slate-200 relative min-w-[20px]">
+                                    <div class="absolute -top-1.5 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-blue-50 border border-blue-100/60 flex items-center justify-center">
+                                        <div class="h-1.5 w-1.5 rounded-full bg-blue-500 animate-ping"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Node 2: n8n Node -->
+                                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                                    <div class="h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+                                        <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.8" stroke-dasharray="1.5 1.5" />
+                                            <circle cx="12" cy="12" r="3" fill="currentColor" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-[8px] font-bold font-mono text-slate-400 uppercase">2. WEBHOOK</span>
+                                </div>
+
+                                <!-- Connector Line 2 -->
+                                <div class="flex-1 h-0.5 border-t border-dashed border-slate-200 min-w-[20px]"></div>
+
+                                <!-- Node 3: AI Engine -->
+                                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                                    <div class="h-9 w-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                                        <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" />
+                                            <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-[8px] font-bold font-mono text-slate-400 uppercase">3. TRIAGE</span>
+                                </div>
+
+                                <!-- Connector Line 3 -->
+                                <div class="flex-1 h-0.5 border-t border-dashed border-slate-200 min-w-[20px]"></div>
+
+                                <!-- Node 4: DB Sync -->
+                                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                                    <div class="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                                        <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4 6c0 1.66 3.58 3 8 3s8-1.34 8-3M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3M4 18c0 1.66 3.58 3 8 3s8-1.34 8-3" stroke="currentColor" stroke-width="1.8" />
+                                        </svg>
+                                    </div>
+                                    <span class="text-[8px] font-bold font-mono text-slate-400 uppercase">4. SYNC</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compact feature list -->
+                        <div class="space-y-2.5 pt-2">
+                            <div class="flex items-center gap-2.5 text-xs text-slate-600">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                </span>
+                                AI scores your lead instantly (Hot / Warm / Cold)
+                            </div>
+                            <div class="flex items-center gap-2.5 text-xs text-slate-600">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                </span>
+                                Deduplication prevents duplicate records
+                            </div>
+                            <div class="flex items-center gap-2.5 text-xs text-slate-600">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                </span>
+                                Admin gets notified via email
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Form -->
+                    <div class="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-lg">
+                        <form @submit.prevent="submitLeadForm" class="space-y-4">
+                            <div>
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Full Name *</label>
+                                <input
+                                    v-model="leadForm.name"
+                                    type="text"
+                                    required
+                                    placeholder="Jane Smith"
+                                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Email *</label>
+                                <input
+                                    v-model="leadForm.email"
+                                    type="email"
+                                    required
+                                    placeholder="jane@company.com"
+                                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                                />
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Company</label>
+                                    <input
+                                        v-model="leadForm.company"
+                                        type="text"
+                                        placeholder="Acme Inc"
+                                        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Phone</label>
+                                    <input
+                                        v-model="leadForm.phone"
+                                        type="tel"
+                                        placeholder="+1 555 000 0000"
+                                        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">Message</label>
+                                <textarea
+                                    v-model="leadForm.message"
+                                    rows="3"
+                                    placeholder="Tell us about your needs..."
+                                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none resize-none"
+                                ></textarea>
+                            </div>
+
+                            <!-- Success Message -->
+                            <div v-if="leadFormSuccess" class="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-xs font-medium text-emerald-700 flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                Lead captured! AI scoring is processing your submission.
+                            </div>
+
+                            <!-- Error Message -->
+                            <div v-if="leadFormError" class="rounded-xl bg-red-50 border border-red-100 p-3 text-xs font-medium text-red-700">
+                                {{ leadFormError }}
+                            </div>
+
+                            <button
+                                type="submit"
+                                :disabled="leadFormSubmitting"
+                                class="w-full rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                <svg v-if="leadFormSubmitting" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                {{ leadFormSubmitting ? 'Submitting...' : 'Submit Lead' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-200 bg-white py-6 relative z-10">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6">
+                <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
+                    <!-- Brand -->
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm">
+                            <svg class="h-4.5 w-4.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="50,12 88,34 88,78 50,100 12,78 12,34" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
+                                <path d="M50,12 L50,56 L88,78 M50,56 L12,78" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+                                <circle cx="50" cy="56" r="10" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-bold font-display uppercase tracking-widest text-slate-900">AI Ops</span>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="flex flex-wrap justify-center gap-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        <a href="#how-it-works" class="hover:text-slate-900 transition-colors">How it works</a>
+                        <a href="#features" class="hover:text-slate-900 transition-colors">Features</a>
+                        <a href="https://github.com/jaor13/ai-customer-ops-platform" target="_blank" class="hover:text-slate-900 transition-colors">Repository</a>
+                    </div>
+
+                    <!-- Copyright -->
+                    <p class="text-[10px] text-slate-500">
+                        &copy; 2026 AI Ops. Built with Laravel, Vue, & Qdrant.
+                    </p>
+                </div>
+            </div>
+        </footer>
     </div>
 </template>
+
+<style scoped>
+/* Scoped keyframes for robust 3D/Float animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes float-top {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-16px); }
+}
+
+@keyframes float-mid {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes float-bot {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+}
+
+.animate-float {
+    animation: float 6s infinite ease-in-out;
+}
+
+.animate-float-top {
+    animation: float-top 6s infinite ease-in-out;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.animate-float-mid {
+    animation: float-mid 6s infinite ease-in-out;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.animate-float-bot {
+    animation: float-bot 6s infinite ease-in-out;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+/* Translucent slide fades */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.15s ease-in-out;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>
