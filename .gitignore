@@ -46,6 +46,12 @@ Thumbs.db
 /laravel-dashboard/.codex/
 /laravel-dashboard/Homestead.json
 /laravel-dashboard/Homestead.yaml
+/laravel-dashboard/AGENTS.md
+/laravel-dashboard/.claude/
+/laravel-dashboard/.kiro/
+/laravel-dashboard/.agents/
+/laravel-dashboard/CLAUDE.MD
+.kiro/
 
 # ===========================
 # Docker & Deployment secrets
