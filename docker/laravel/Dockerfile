@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────
 # Stage 1: Build front-end assets (Vue 3 + Vite)
 # ─────────────────────────────────────────────
-FROM node:20-alpine AS frontend
+FROM node:20-slim AS frontend
 
 WORKDIR /app
 
