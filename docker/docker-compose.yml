@@ -1,0 +1,150 @@
+services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL — primary database for all services
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ai_crm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-crm
+
+  # ─────────────────────────────────────────────
+  # Qdrant — vector store for RAG knowledge base
+  # ─────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.9.7
+    container_name: ai-crm-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-crm
+
+  # ─────────────────────────────────────────────
+  # n8n — workflow automation engine
+  # ─────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ai-crm-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=${N8N_DOMAIN:-n8n.ai-ops.jaor13.app}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${N8N_DOMAIN:-n8n.ai-ops.jaor13.app}/
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?Set N8N_PASSWORD in .env}
+      - GENERIC_TIMEZONE=${TIMEZONE:-Asia/Manila}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ai-crm
+
+  # ─────────────────────────────────────────────
+  # Laravel — dashboard application (PHP + Nginx)
+  # ─────────────────────────────────────────────
+  laravel:
+    build:
+      context: ..
+      dockerfile: docker/laravel/Dockerfile
+    container_name: ai-crm-laravel
+    restart: unless-stopped
+    environment:
+      APP_NAME: "AI Customer Ops"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://${APP_DOMAIN:-ai-ops.jaor13.app}
+      APP_KEY: ${LARAVEL_APP_KEY:?Set LARAVEL_APP_KEY in .env}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ai_crm
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      QDRANT_HOST: http://qdrant:6333
+      N8N_WEBHOOK_URL: http://n8n:5678
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ai-crm
+
+  # ─────────────────────────────────────────────
+  # Nginx — reverse proxy with SSL termination
+  # ─────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ai-crm-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - laravel
+      - n8n
+    networks:
+      - ai-crm
+
+  # ─────────────────────────────────────────────
+  # Certbot — automated SSL certificate renewal
+  # ─────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ai-crm-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - ai-crm
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  n8n_data:
+  laravel_storage:
+
+networks:
+  ai-crm:
+    driver: bridge

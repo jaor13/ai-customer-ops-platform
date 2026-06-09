@@ -14,7 +14,7 @@ An AI-powered automation stack for small-to-medium businesses that handles lead 
 
 | Layer | Technology |
 |-------|-----------|
-| Dashboard | Laravel 12 + Inertia.js (React/TypeScript) + Tailwind CSS |
+| Dashboard | Laravel 12 + Inertia.js (Vue 3) + Tailwind CSS |
 | Workflow Engine | n8n (self-hosted) |
 | Database | PostgreSQL |
 | Vector Store | Qdrant |

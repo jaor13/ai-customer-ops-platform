@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in image)
+docs/
+architecture/
+database/
+
+# Laravel dev files
+laravel-dashboard/vendor/
+laravel-dashboard/node_modules/
+laravel-dashboard/.env
+laravel-dashboard/.env.backup
+laravel-dashboard/storage/logs/*
+laravel-dashboard/storage/framework/cache/*
+laravel-dashboard/storage/framework/sessions/*
+laravel-dashboard/storage/framework/views/*
+laravel-dashboard/public/build/
+
+# Docker configs (already mounted or COPYed explicitly)
+docker/certbot/
+docker/.env
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+*.swp
