@@ -5,7 +5,7 @@ FROM node:20-alpine AS frontend
 
 WORKDIR /app
 
-COPY laravel-dashboard/package.json laravel-dashboard/package-lock.json* ./
+COPY laravel-dashboard/package.json laravel-dashboard/package-lock.json ./
 RUN npm ci
 
 COPY laravel-dashboard/ .
