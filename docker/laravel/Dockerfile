@@ -5,11 +5,11 @@ FROM node:20-slim AS frontend
 
 WORKDIR /app
 
-COPY laravel-dashboard/package.json laravel-dashboard/package-lock.json ./
-RUN npm install
+COPY laravel-dashboard/package.json ./
+RUN rm -f package-lock.json && npm install
 
 COPY laravel-dashboard/ .
-RUN npm run build
+RUN rm -f package-lock.json && npm run build
 
 # ─────────────────────────────────────────────
 # Stage 2: Install PHP dependencies
