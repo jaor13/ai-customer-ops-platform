@@ -1,6 +1,12 @@
 <?php
 
+use App\Http\Controllers\ApprovalsController;
+use App\Http\Controllers\CustomersController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\KnowledgeBaseController;
+use App\Http\Controllers\LeadsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TicketsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -10,9 +16,23 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard — overview only
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Approvals — review queue
+    Route::get('/approvals', [ApprovalsController::class, 'index'])->name('approvals.index');
+    Route::post('/approvals/{approval}/approve', [ApprovalsController::class, 'approve'])->name('approvals.approve');
+    Route::post('/approvals/{approval}/reject', [ApprovalsController::class, 'reject'])->name('approvals.reject');
+
+    // Pipeline
+    Route::get('/leads', [LeadsController::class, 'index'])->name('leads.index');
+    Route::get('/tickets', [TicketsController::class, 'index'])->name('tickets.index');
+    Route::get('/customers', [CustomersController::class, 'index'])->name('customers.index');
+
+    // Resources
+    Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
