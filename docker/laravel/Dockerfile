@@ -59,6 +59,8 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/laravel/php.ini /usr/local/etc/php/conf.d/99-custom.ini
 COPY docker/laravel/nginx-site.conf /etc/nginx/http.d/default.conf
 COPY docker/laravel/supervisord.conf /etc/supervisord.conf
+COPY docker/laravel/docker-entrypoint.sh /var/www/html/docker-entrypoint.sh
+RUN chmod +x /var/www/html/docker-entrypoint.sh
 
 # Set working directory
 WORKDIR /var/www/html
@@ -81,11 +83,11 @@ RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Optimize Laravel for production
-RUN php artisan config:cache \
-    && php artisan route:cache \
+# Optimize Laravel for production (route + view only; config cache is
+# generated at container startup so it picks up runtime env vars).
+RUN php artisan route:cache \
     && php artisan view:cache
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/var/www/html/docker-entrypoint.sh"]
