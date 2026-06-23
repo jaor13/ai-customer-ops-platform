@@ -28,8 +28,8 @@ class StoreKnowledgeDocumentRequest extends FormRequest
 
     public function authorize(): bool
     {
-        // Route is already behind the 'auth' + 'verified' middleware group.
-        return $this->user() !== null;
+        // Authorization is handled by the 'auth' + 'verified' route middleware.
+        return true;
     }
 
     /**
