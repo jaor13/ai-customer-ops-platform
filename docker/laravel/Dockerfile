@@ -3,6 +3,11 @@
 # ─────────────────────────────────────────────
 FROM composer:2 AS vendor
 
+# phpoffice/phpword requires ext-gd at install time (platform check).
+RUN apk add --no-cache libpng-dev libjpeg-turbo-dev freetype-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd
+
 WORKDIR /app
 
 COPY laravel-dashboard/composer.json laravel-dashboard/composer.lock ./
@@ -24,6 +29,9 @@ RUN apk add --no-cache \
     supervisor \
     libpq-dev \
     libzip-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     zip \
     unzip \
     curl \
@@ -36,7 +44,9 @@ RUN apk add --no-cache \
     tesseract-ocr-data-eng \
     ghostscript \
     poppler-utils \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
+    gd \
     pdo_pgsql \
     pgsql \
     zip \
