@@ -26,11 +26,12 @@ class IngestKnowledgeDocumentAction
         $checksum = hash_file('sha256', $file->getRealPath());
 
         $document = DB::transaction(function () use ($data, $file, $extension, $docKey, $checksum, $uploadedBy) {
-            // Next version for this logical document, locking existing rows so
+            // Next version for this logical document. Lock existing rows first so
             // two concurrent uploads can't claim the same version number.
             $latestVersion = KnowledgeDocument::where('doc_key', $docKey)
                 ->lockForUpdate()
-                ->max('version');
+                ->orderByDesc('version')
+                ->value('version');
             $version = ($latestVersion ?? 0) + 1;
 
             // Supersede every prior version so retrieval (status='active') stops
