@@ -12,8 +12,12 @@ class ApprovalQueue extends Model
     protected $table = 'approval_queue';
 
     protected $fillable = [
+        'type',
         'ticket_id',
+        'lead_id',
         'customer_id',
+        'recipient_email',
+        'subject',
         'draft_body',
         'edited_body',
         'context_sources',
@@ -35,6 +39,11 @@ class ApprovalQueue extends Model
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);
+    }
+
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class);
     }
 
     public function customer(): BelongsTo

@@ -35,4 +35,41 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | n8n — workflow orchestrator
+    |--------------------------------------------------------------------------
+    |
+    | Laravel is the ingestion front door: it validates, extracts text (+OCR)
+    | and POSTs ready text + metadata to the n8n "03 Knowledge Base - Ingestion"
+    | webhook, which chunks, embeds (Ollama) and upserts to Qdrant. The secret
+    | is sent as a shared header so the webhook can reject unauthenticated calls.
+    | See docs/12-rag-metadata-and-authority.md §6.
+    |
+    */
+
+    'n8n' => [
+        'ingest_url' => env('N8N_INGEST_URL'),
+        'secret' => env('N8N_WEBHOOK_SECRET'),
+        'timeout' => (int) env('N8N_TIMEOUT', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Knowledge base storage & ingestion limits
+    |--------------------------------------------------------------------------
+    |
+    | Original uploads are kept on the configured disk (S3 in production) so
+    | documents can be re-processed or re-OCR'd later. OCR tooling is optional;
+    | when the binaries are unavailable, scanned-PDF fallback is skipped.
+    |
+    */
+
+    'knowledge_base' => [
+        'disk' => env('KB_DISK', 's3'),
+        'max_upload_kb' => (int) env('KB_MAX_UPLOAD_KB', 10240), // 10 MB
+        'ocr_enabled' => (bool) env('KB_OCR_ENABLED', true),
+        'ocrmypdf_path' => env('OCRMYPDF_PATH', 'ocrmypdf'),
+    ],
+
 ];

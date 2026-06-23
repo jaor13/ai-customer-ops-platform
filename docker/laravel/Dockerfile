@@ -29,6 +29,13 @@ RUN apk add --no-cache \
     curl \
     nodejs \
     npm \
+    # Knowledge-base OCR / PDF tooling (scanned-PDF fallback in DocumentTextExtractor).
+    # Optional at runtime — gated by KB_OCR_ENABLED; remove this group to slim the image.
+    ocrmypdf \
+    tesseract-ocr \
+    tesseract-ocr-data-eng \
+    ghostscript \
+    poppler-utils \
     && docker-php-ext-install \
     pdo_pgsql \
     pgsql \

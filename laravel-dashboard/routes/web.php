@@ -32,6 +32,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Resources
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
+    Route::post('/knowledge-base', [KnowledgeBaseController::class, 'store'])->name('knowledge-base.store');
+    Route::delete('/knowledge-base/{knowledgeDocument}', [KnowledgeBaseController::class, 'destroy'])->name('knowledge-base.destroy');
 });
 
 Route::middleware('auth')->group(function () {

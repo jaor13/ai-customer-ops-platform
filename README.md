@@ -18,7 +18,7 @@ An AI-powered automation stack for small-to-medium businesses that handles lead 
 | Workflow Engine | n8n (self-hosted) |
 | Database | PostgreSQL |
 | Vector Store | Qdrant |
-| AI | OpenAI API (GPT-4) |
+| AI | OpenRouter (chat completions) + Ollama (self-hosted embeddings) |
 | Deployment | Docker Compose on a VPS |
 
 ## Project Structure
@@ -79,7 +79,8 @@ Key variables to configure in `laravel-dashboard/.env`:
 |----------|---------|
 | `DB_CONNECTION` | Database driver (pgsql) |
 | `DB_HOST` / `DB_PORT` | PostgreSQL connection |
-| `OPENAI_API_KEY` | OpenAI API access |
+| `OPENROUTER_API_KEY` | OpenRouter API access (chat completions) |
+| `EMBED_VPS_URL` | Ollama embeddings endpoint (e.g. http://<embed-vps-ip>:11434) |
 | `QDRANT_HOST` | Qdrant vector DB endpoint |
 | `N8N_WEBHOOK_URL` | n8n webhook base URL |
 

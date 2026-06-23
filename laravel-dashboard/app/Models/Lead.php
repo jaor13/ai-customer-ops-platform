@@ -36,4 +36,9 @@ class Lead extends Model
     {
         return $this->hasMany(Interaction::class);
     }
+
+    public function approvalQueue(): HasMany
+    {
+        return $this->hasMany(ApprovalQueue::class);
+    }
 }
