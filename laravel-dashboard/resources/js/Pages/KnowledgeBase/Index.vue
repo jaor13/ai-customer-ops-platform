@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     BookOpen, Upload, FileText, X, Trash2, CheckCircle2,
-    AlertCircle, Loader2, ScanLine,
+    AlertCircle, Loader2, ScanLine, Pencil,
 } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card';
@@ -89,6 +89,33 @@ const performDelete = () => {
     router.delete(route('knowledge-base.destroy', deleting.value.id), {
         preserveScroll: true,
         onFinish: closeDelete,
+    });
+};
+
+// --- edit metadata ---
+const editing = ref(null);
+const editForm = useForm({
+    category: '',
+    department: '',
+    authority_weight: 1.0,
+    effective_from: '',
+    effective_to: '',
+});
+
+const openEdit = (doc) => {
+    editing.value = doc;
+    editForm.category = doc.category;
+    editForm.department = doc.department || '';
+    editForm.authority_weight = doc.authority_weight;
+    editForm.effective_from = doc.effective_from || '';
+    editForm.effective_to = doc.effective_to || '';
+};
+const closeEdit = () => (editing.value = null);
+const submitEdit = () => {
+    if (!editing.value) return;
+    editForm.put(route('knowledge-base.update', editing.value.id), {
+        preserveScroll: true,
+        onSuccess: closeEdit,
     });
 };
 
@@ -325,14 +352,24 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                     <td class="px-5 py-3 text-text-secondary">{{ doc.chunk_count ?? 0 }}</td>
                                     <td class="px-5 py-3 text-text-tertiary">{{ doc.created_at }}</td>
                                     <td class="px-5 py-3 text-right">
-                                        <button
-                                            type="button"
-                                            class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-red-50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:hover:bg-red-500/10"
-                                            :aria-label="`Delete ${doc.original_name || doc.doc_key}`"
-                                            @click="confirmDelete(doc)"
-                                        >
-                                            <Trash2 class="h-3.5 w-3.5" />
-                                        </button>
+                                        <div class="inline-flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-blue-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-blue-500/10"
+                                                :aria-label="`Edit ${doc.original_name || doc.doc_key}`"
+                                                @click="openEdit(doc)"
+                                            >
+                                                <Pencil class="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-red-50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:hover:bg-red-500/10"
+                                                :aria-label="`Delete ${doc.original_name || doc.doc_key}`"
+                                                @click="confirmDelete(doc)"
+                                            >
+                                                <Trash2 class="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -361,6 +398,75 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                     <SecondaryButton @click="closeDelete">Cancel</SecondaryButton>
                     <DangerButton @click="performDelete">Delete</DangerButton>
                 </div>
+            </div>
+        </Modal>
+
+        <!-- Edit metadata modal -->
+        <Modal :show="editing !== null" @close="closeEdit">
+            <div class="p-6">
+                <div class="flex items-start gap-3 mb-5">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                        <Pencil class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-extrabold font-display text-text">Edit Metadata</h2>
+                        <p class="mt-0.5 text-xs text-text-secondary">
+                            <span class="font-semibold text-text">{{ editing?.original_name || editing?.doc_key }}</span>
+                            — update classification and authority without re-indexing.
+                        </p>
+                    </div>
+                </div>
+
+                <form class="space-y-4" @submit.prevent="submitEdit">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <InputLabel for="edit_category" value="Category" />
+                            <select id="edit_category" v-model="editForm.category" :class="selectClass" class="mt-1.5">
+                                <option v-for="c in options.categories" :key="c" :value="c">{{ capitalize(c) }}</option>
+                            </select>
+                            <InputError class="mt-1.5" :message="editForm.errors.category" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="edit_department" value="Department" />
+                            <select id="edit_department" v-model="editForm.department" :class="selectClass" class="mt-1.5">
+                                <option value="">— None —</option>
+                                <option v-for="d in options.departments" :key="d" :value="d">{{ capitalize(d) }}</option>
+                            </select>
+                            <InputError class="mt-1.5" :message="editForm.errors.department" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="edit_authority" value="Authority" />
+                            <select id="edit_authority" v-model.number="editForm.authority_weight" :class="selectClass" class="mt-1.5">
+                                <option v-for="a in authorityLevels" :key="a.value" :value="a.value">{{ a.label }}</option>
+                            </select>
+                            <InputError class="mt-1.5" :message="editForm.errors.authority_weight" />
+                        </div>
+
+                        <div></div>
+
+                        <div>
+                            <InputLabel for="edit_effective_from" value="Effective From" />
+                            <input id="edit_effective_from" v-model="editForm.effective_from" type="date" :class="inputClass" class="mt-1.5" />
+                            <InputError class="mt-1.5" :message="editForm.errors.effective_from" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="edit_effective_to" value="Effective To" />
+                            <input id="edit_effective_to" v-model="editForm.effective_to" type="date" :class="inputClass" class="mt-1.5" />
+                            <InputError class="mt-1.5" :message="editForm.errors.effective_to" />
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <SecondaryButton type="button" @click="closeEdit">Cancel</SecondaryButton>
+                        <Button type="submit" :disabled="editForm.processing">
+                            <Loader2 v-if="editForm.processing" class="h-3.5 w-3.5 animate-spin" />
+                            Save Changes
+                        </Button>
+                    </div>
+                </form>
             </div>
         </Modal>
     </AuthenticatedLayout>

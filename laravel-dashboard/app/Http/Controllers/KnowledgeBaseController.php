@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\IngestKnowledgeDocumentAction;
 use App\Http\Requests\StoreKnowledgeDocumentRequest;
+use App\Http\Requests\UpdateKnowledgeDocumentRequest;
 use App\Models\KnowledgeDocument;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -76,6 +77,17 @@ class KnowledgeBaseController extends Controller
         );
 
         return back()->with('success', 'Document uploaded. Text extraction and indexing are running in the background.');
+    }
+
+    public function update(UpdateKnowledgeDocumentRequest $request, KnowledgeDocument $knowledgeDocument): RedirectResponse
+    {
+        $knowledgeDocument->update($request->validated());
+
+        // TODO: When Qdrant payload sync is wired, also patch the chunk payloads
+        // for this document_id with the updated category/department/authority_weight
+        // via Qdrant set_payload API.
+
+        return back()->with('success', 'Document metadata updated.');
     }
 
     public function destroy(KnowledgeDocument $knowledgeDocument): RedirectResponse
