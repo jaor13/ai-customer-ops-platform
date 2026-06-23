@@ -104,6 +104,21 @@ services:
       OLLAMA_HOST: ${OLLAMA_HOST:-}
       OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
       N8N_WEBHOOK_URL: http://n8n:5678
+      # Knowledge base ingestion
+      KB_DISK: ${KB_DISK:-local}
+      KB_MAX_UPLOAD_KB: ${KB_MAX_UPLOAD_KB:-10240}
+      KB_OCR_ENABLED: ${KB_OCR_ENABLED:-true}
+      N8N_INGEST_URL: ${N8N_INGEST_URL:-}
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:-}
+      N8N_TIMEOUT: ${N8N_TIMEOUT:-30}
+      # S3 storage (for KB file uploads)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      AWS_BUCKET: ${AWS_BUCKET:-}
+      AWS_URL: ${AWS_URL:-}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-}
+      AWS_USE_PATH_STYLE_ENDPOINT: ${AWS_USE_PATH_STYLE_ENDPOINT:-false}
     volumes:
       - laravel_storage:/var/www/html/storage
     depends_on:
