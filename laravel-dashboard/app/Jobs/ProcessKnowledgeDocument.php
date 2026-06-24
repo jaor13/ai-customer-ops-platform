@@ -4,11 +4,13 @@ namespace App\Jobs;
 
 use App\Models\KnowledgeDocument;
 use App\Services\DocumentTextExtractor;
+use App\Services\QdrantService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -31,7 +33,7 @@ class ProcessKnowledgeDocument implements ShouldQueue
 
     public function __construct(public int $documentId) {}
 
-    public function handle(DocumentTextExtractor $extractor): void
+    public function handle(DocumentTextExtractor $extractor, QdrantService $qdrant): void
     {
         $document = KnowledgeDocument::find($this->documentId);
 
@@ -62,7 +64,7 @@ class ProcessKnowledgeDocument implements ShouldQueue
                 'ocr_used' => $extracted['ocr_used'],
             ]);
 
-            $this->sendToN8n($document, $extracted['text']);
+            $this->sendToN8n($document, $extracted['text'], $qdrant);
         } catch (\Throwable $e) {
             Log::error('Knowledge document processing failed', [
                 'document_id' => $document->id,
@@ -82,7 +84,7 @@ class ProcessKnowledgeDocument implements ShouldQueue
      * POST the doc-12 §6 contract. If n8n isn't configured yet, leave the
      * document in 'processing' (extracted, awaiting ingestion wiring).
      */
-    private function sendToN8n(KnowledgeDocument $document, string $text): void
+    private function sendToN8n(KnowledgeDocument $document, string $text, QdrantService $qdrant): void
     {
         $url = config('services.n8n.ingest_url');
 
@@ -118,9 +120,46 @@ class ProcessKnowledgeDocument implements ShouldQueue
             return;
         }
 
-        // n8n will also write back chunk_count/qdrant_ids and flip to 'active';
-        // we optimistically record success here in case it doesn't call back.
-        $document->update(['status' => 'active', 'ingest_error' => null]);
+        // n8n is stateless now — it returns the counts; Laravel stores them.
+        // (We delete/supersede by document_id, so qdrant_ids is audit-only.)
+        $result = $response->json();
+        $document->update([
+            'chunk_count' => $result['chunks'] ?? null,
+            'qdrant_ids' => $result['point_ids'] ?? null,
+        ]);
+
+        // Ingestion succeeded: promote this version and retire the old ones.
+        $this->promoteAndSupersede($document, $qdrant);
+    }
+
+    /**
+     * Activate the freshly-ingested version and retire all prior versions of
+     * the same doc_key — in Postgres (source of truth) and in Qdrant (so the
+     * active-only retrieval filter immediately stops surfacing stale chunks).
+     */
+    private function promoteAndSupersede(KnowledgeDocument $document, QdrantService $qdrant): void
+    {
+        $supersededIds = DB::transaction(function () use ($document) {
+            $priorIds = KnowledgeDocument::where('doc_key', $document->doc_key)
+                ->where('id', '!=', $document->id)
+                ->where('status', '!=', 'superseded')
+                ->pluck('id')
+                ->all();
+
+            if (! empty($priorIds)) {
+                KnowledgeDocument::whereIn('id', $priorIds)
+                    ->update(['is_active' => false, 'status' => 'superseded', 'updated_at' => now()]);
+            }
+
+            $document->update(['is_active' => true, 'status' => 'active', 'ingest_error' => null]);
+
+            return $priorIds;
+        });
+
+        // Flip the old chunks in Qdrant (best-effort; logged on failure).
+        foreach ($supersededIds as $id) {
+            $qdrant->supersedeByDocumentId($id);
+        }
     }
 
     private function markFailed(KnowledgeDocument $document, string $reason): void

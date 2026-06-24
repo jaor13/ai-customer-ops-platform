@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import { Head, router, useForm, usePage, usePoll } from '@inertiajs/vue3';
 import {
     BookOpen, Upload, FileText, X, Trash2, CheckCircle2,
     AlertCircle, Loader2, ScanLine, Pencil,
@@ -18,6 +18,7 @@ import PageEmpty from '@/Components/PageEmpty.vue';
 
 const props = defineProps({
     documents: { type: Array, default: () => [] },
+    documentKeys: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({ categories: [], departments: [] }) },
     maxUploadKb: { type: Number, default: 10240 },
 });
@@ -25,6 +26,16 @@ const props = defineProps({
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
 const flashError = computed(() => page.props.flash?.error);
+
+// Live-refresh the list while any document is still being indexed, so the
+// status flips from "Processing" to "Active" without a manual reload.
+const hasProcessing = computed(() => props.documents.some((d) => d.status === 'processing'));
+const { start, stop } = usePoll(
+    4000,
+    { only: ['documents', 'documentKeys'] },
+    { autoStart: false },
+);
+watch(hasProcessing, (processing) => (processing ? start() : stop()), { immediate: true });
 
 const maxMb = computed(() => Math.round(props.maxUploadKb / 1024));
 
@@ -46,6 +57,16 @@ const form = useForm({
 
 const fileInput = ref(null);
 const dragging = ref(false);
+
+// Versioning mode: 'new' = fresh document (key from text/filename),
+// 'version' = new version of an existing doc_key (explicit, never relies on
+// matching filenames).
+const uploadMode = ref('new');
+const setMode = (mode) => {
+    uploadMode.value = mode;
+    form.doc_key = '';
+    form.clearErrors('doc_key');
+};
 
 const setFile = (file) => {
     if (!file) return;
@@ -76,6 +97,7 @@ const submit = () => {
         onSuccess: () => {
             form.reset();
             clearFile();
+            uploadMode.value = 'new';
         },
     });
 };
@@ -242,17 +264,50 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                 <InputError class="mt-1.5" :message="form.errors.authority_weight" />
                             </div>
 
-                            <div>
-                                <InputLabel for="doc_key" value="Document Key (optional)" />
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <InputLabel value="Document" />
+                                <div class="mt-1.5 inline-flex rounded-xl border border-border bg-surface-hover/40 p-0.5" role="group" aria-label="Versioning mode">
+                                    <button
+                                        type="button"
+                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                        :class="uploadMode === 'new' ? 'bg-white text-blue-600 shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
+                                        @click="setMode('new')"
+                                    >New</button>
+                                    <button
+                                        type="button"
+                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                                        :class="uploadMode === 'version' ? 'bg-white text-blue-600 shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
+                                        :disabled="documentKeys.length === 0"
+                                        @click="setMode('version')"
+                                    >New version</button>
+                                </div>
+
                                 <input
+                                    v-if="uploadMode === 'new'"
                                     id="doc_key"
                                     v-model="form.doc_key"
                                     type="text"
-                                    placeholder="e.g. pricing — derived from filename if blank"
+                                    placeholder="Key (optional) — derived from filename if blank"
                                     :class="inputClass"
                                     class="mt-1.5"
                                 />
-                                <p class="mt-1 text-[10px] text-text-tertiary">Same key across versions — re-uploading supersedes the old one.</p>
+                                <select
+                                    v-else
+                                    id="doc_key_existing"
+                                    v-model="form.doc_key"
+                                    :class="selectClass"
+                                    class="mt-1.5"
+                                >
+                                    <option value="" disabled>Select existing document…</option>
+                                    <option v-for="k in documentKeys" :key="k.doc_key" :value="k.doc_key">
+                                        {{ k.doc_key }} (currently v{{ k.latest_version }})
+                                    </option>
+                                </select>
+                                <p class="mt-1 text-[10px] text-text-tertiary">
+                                    {{ uploadMode === 'new'
+                                        ? 'A new logical document. Same key across future versions.'
+                                        : 'Creates the next version and supersedes the current one.' }}
+                                </p>
                                 <InputError class="mt-1.5" :message="form.errors.doc_key" />
                             </div>
 
@@ -273,7 +328,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                             <p class="mr-auto text-[10px] text-text-tertiary">
                                 Higher authority sources win ties at query time; superseded versions stop surfacing automatically.
                             </p>
-                            <Button type="submit" :disabled="form.processing || !form.file">
+                            <Button type="submit" :disabled="form.processing || !form.file || (uploadMode === 'version' && !form.doc_key)">
                                 <Loader2 v-if="form.processing" class="h-3.5 w-3.5 animate-spin" />
                                 <Upload v-else class="h-3.5 w-3.5" />
                                 {{ form.processing ? 'Uploading…' : 'Upload & Index' }}

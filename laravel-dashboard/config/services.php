@@ -72,4 +72,21 @@ return [
         'ocrmypdf_path' => env('OCRMYPDF_PATH', 'ocrmypdf'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Qdrant — vector store (internal Docker network)
+    |--------------------------------------------------------------------------
+    |
+    | Laravel owns the document lifecycle, so it talks to Qdrant directly to
+    | delete, supersede, and patch chunk payloads — no n8n hop needed. n8n is
+    | only responsible for ingestion (chunk → embed → upsert).
+    |
+    */
+
+    'qdrant' => [
+        'host' => env('QDRANT_HOST', 'http://qdrant:6333'),
+        'collection' => env('QDRANT_COLLECTION', 'ai_crm_knowledge'),
+        'timeout' => (int) env('QDRANT_TIMEOUT', 15),
+    ],
+
 ];

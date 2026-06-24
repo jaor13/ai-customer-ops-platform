@@ -60,6 +60,15 @@ class KnowledgeBaseController extends Controller
 
         return Inertia::render('KnowledgeBase/Index', [
             'documents' => $documents,
+            'documentKeys' => KnowledgeDocument::query()
+                ->selectRaw('doc_key, MAX(version) as latest_version')
+                ->groupBy('doc_key')
+                ->orderBy('doc_key')
+                ->get()
+                ->map(fn ($row) => [
+                    'doc_key' => $row->doc_key,
+                    'latest_version' => (int) $row->latest_version,
+                ]),
             'options' => [
                 'categories' => StoreKnowledgeDocumentRequest::CATEGORIES,
                 'departments' => StoreKnowledgeDocumentRequest::DEPARTMENTS,
@@ -79,18 +88,25 @@ class KnowledgeBaseController extends Controller
         return back()->with('success', 'Document uploaded. Text extraction and indexing are running in the background.');
     }
 
-    public function update(UpdateKnowledgeDocumentRequest $request, KnowledgeDocument $knowledgeDocument): RedirectResponse
+    public function update(UpdateKnowledgeDocumentRequest $request, KnowledgeDocument $knowledgeDocument, QdrantService $qdrant): RedirectResponse
     {
-        $knowledgeDocument->update($request->validated());
+        $validated = $request->validated();
+        $knowledgeDocument->update($validated);
 
-        // TODO: When Qdrant payload sync is wired, also patch the chunk payloads
-        // for this document_id with the updated category/department/authority_weight
-        // via Qdrant set_payload API.
+        // Keep the Qdrant payload mirror in sync so authority/category filters
+        // and ranking reflect the edit immediately — no re-embedding needed.
+        $qdrant->setPayload($knowledgeDocument->id, [
+            'category' => $knowledgeDocument->category,
+            'department' => $knowledgeDocument->department,
+            'authority_weight' => (float) $knowledgeDocument->authority_weight,
+            'effective_from' => optional($knowledgeDocument->effective_from)->toDateString(),
+            'effective_to' => optional($knowledgeDocument->effective_to)->toDateString(),
+        ]);
 
         return back()->with('success', 'Document metadata updated.');
     }
 
-    public function destroy(KnowledgeDocument $knowledgeDocument): RedirectResponse
+    public function destroy(KnowledgeDocument $knowledgeDocument, QdrantService $qdrant): RedirectResponse
     {
         $disk = config('services.knowledge_base.disk', 's3');
 
@@ -98,10 +114,12 @@ class KnowledgeBaseController extends Controller
             Storage::disk($disk)->delete($knowledgeDocument->filename);
         }
 
+        // Remove this version's chunks from Qdrant so nothing orphaned is left
+        // behind (prevents stale retrieval / contamination).
+        $qdrant->deleteByDocumentId($knowledgeDocument->id);
+
         $knowledgeDocument->delete();
 
-        // Note: Qdrant chunk cleanup (by document_id / qdrant_ids) is handled by
-        // the n8n delete/supersede flow — wire that up when n8n is connected.
-        return back()->with('success', 'Document removed.');
+        return back()->with('success', 'Document removed from storage and the vector index.');
     }
 }

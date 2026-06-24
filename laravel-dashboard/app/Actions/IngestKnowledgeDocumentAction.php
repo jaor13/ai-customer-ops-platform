@@ -34,14 +34,6 @@ class IngestKnowledgeDocumentAction
                 ->value('version');
             $version = ($latestVersion ?? 0) + 1;
 
-            // Supersede every prior version so retrieval (status='active') stops
-            // surfacing stale content the moment the new version lands.
-            if ($latestVersion !== null) {
-                KnowledgeDocument::where('doc_key', $docKey)
-                    ->where('is_active', true)
-                    ->update(['is_active' => false, 'status' => 'superseded', 'updated_at' => now()]);
-            }
-
             // Persist the original so it can be re-processed / re-OCR'd later.
             $storedPath = $file->storeAs(
                 "knowledge-base/{$docKey}/v{$version}",
@@ -49,11 +41,15 @@ class IngestKnowledgeDocumentAction
                 config('services.knowledge_base.disk', 's3'),
             );
 
+            // The new version starts inactive: prior versions stay active and
+            // retrievable until THIS one finishes ingesting. The job promotes it
+            // and supersedes the old versions only on success — so a failed
+            // upload never leaves the document with no active version.
             return KnowledgeDocument::create([
                 'doc_key' => $docKey,
                 'version' => $version,
-                'is_active' => true,
-                'status' => 'processing', // → 'active' once n8n confirms ingestion, else 'failed'
+                'is_active' => false,
+                'status' => 'processing', // → 'active' (promoted by the job) or 'failed'
                 'category' => $data['category'],
                 'authority_weight' => $data['authority_weight'],
                 'department' => $data['department'] ?? null,
