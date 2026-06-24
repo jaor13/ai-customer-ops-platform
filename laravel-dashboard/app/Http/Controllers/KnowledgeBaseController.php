@@ -6,6 +6,7 @@ use App\Actions\IngestKnowledgeDocumentAction;
 use App\Http\Requests\StoreKnowledgeDocumentRequest;
 use App\Http\Requests\UpdateKnowledgeDocumentRequest;
 use App\Models\KnowledgeDocument;
+use App\Services\QdrantService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
