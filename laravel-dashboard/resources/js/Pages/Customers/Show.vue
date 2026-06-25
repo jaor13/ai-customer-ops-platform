@@ -17,7 +17,7 @@ defineProps({
 
 // Map an interaction event_type to an icon + accent colour.
 const eventMeta = (type) => ({
-    lead_created: { icon: UserPlus, class: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400', label: 'Lead Created' },
+    lead_created: { icon: UserPlus, class: 'bg-primary-light text-primary', label: 'Lead Created' },
     lead_scored: { icon: Sparkles, class: 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400', label: 'Lead Scored' },
     lead_welcome_generated: { icon: FileText, class: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400', label: 'Welcome Draft Generated' },
     email_received: { icon: Inbox, class: 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400', label: 'Email Received' },
@@ -60,7 +60,7 @@ const initials = (name) => (name || '?').split(' ').map((w) => w[0]).slice(0, 2)
                     <Card>
                         <CardContent class="p-6">
                             <div class="flex items-center gap-4">
-                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-base font-extrabold font-display text-white">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-base font-extrabold font-display text-white">
                                     {{ initials(customer.name) }}
                                 </div>
                                 <div class="min-w-0">

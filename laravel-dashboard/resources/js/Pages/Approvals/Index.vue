@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { Head, router, usePoll } from '@inertiajs/vue3';
+import { Head, router, usePoll, usePage } from '@inertiajs/vue3';
 import {
     Check,
     X,
@@ -27,13 +27,13 @@ const props = defineProps({
     demoMode: { type: Boolean, default: false },
 });
 
+const page = usePage();
 const localList = ref([...props.approvals]);
 const selectedId = ref(localList.value[0]?.id ?? null);
 const editedBody = ref('');
 const isSubmitting = ref(false);
 const showRejectModal = ref(false);
 const rejectionReason = ref('');
-const toast = ref({ visible: false, msg: '', type: 'success' });
 
 const selected = computed(() =>
     localList.value.find((a) => a.id === selectedId.value) ?? null,
@@ -78,8 +78,11 @@ const priorityVariant = (p) => {
 };
 
 const showToast = (msg, type = 'success') => {
-    toast.value = { visible: true, msg, type };
-    setTimeout(() => (toast.value.visible = false), 3500);
+    if (type === 'error') {
+        page.props.flash.error = msg;
+    } else {
+        page.props.flash.success = msg;
+    }
 };
 
 const removeFromList = (id) => {
@@ -211,7 +214,7 @@ const confirmReject = () => {
                                     :class="[
                                         'flex flex-col items-start w-full gap-2 px-5 py-3.5 text-left transition',
                                         selectedId === item.id
-                                            ? 'bg-blue-50/60 dark:bg-blue-500/10'
+                                            ? 'bg-primary-light/60 dark:bg-primary/10'
                                             : 'hover:bg-surface-hover',
                                     ]"
                                 >
@@ -278,7 +281,7 @@ const confirmReject = () => {
                                 <textarea
                                     v-model="editedBody"
                                     rows="8"
-                                    class="w-full rounded-xl border border-border bg-white text-xs text-text leading-relaxed focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 placeholder-text-tertiary p-4 dark:bg-surface"
+                                    class="w-full rounded-xl border border-border bg-white text-xs text-text leading-relaxed focus:border-primary focus:ring-primary/20 focus:ring-2 placeholder-text-tertiary p-4 dark:bg-surface"
                                     placeholder="AI draft response..."
                                 />
                             </section>
@@ -294,10 +297,10 @@ const confirmReject = () => {
                                         :key="i"
                                         class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1 text-[10px] font-semibold text-text-secondary dark:bg-surface"
                                     >
-                                        <FileText class="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                        <FileText class="h-3 w-3 text-primary" />
                                         {{ src.name || src.document || src.doc_key || 'Document' }}
                                         <span v-if="src.version" class="text-[9px] font-mono text-text-tertiary">v{{ src.version }}</span>
-                                        <span v-if="src.category" class="text-[9px] font-mono text-blue-600/70 dark:text-blue-400/70">{{ src.category }}</span>
+                                        <span v-if="src.category" class="text-[9px] font-mono text-primary/70">{{ src.category }}</span>
                                         <span v-if="src.confidence || src.score" class="text-[9px] font-mono text-text-tertiary">
                                             {{ src.confidence || `${Math.round(src.score * 100)}%` }}
                                         </span>
@@ -327,7 +330,7 @@ const confirmReject = () => {
                 <Card class="relative z-10 w-full max-w-md shadow-2xl">
                     <CardHeader>
                         <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-danger/10 text-danger">
                                 <AlertTriangle class="h-4 w-4" />
                             </div>
                             <div>
@@ -343,7 +346,7 @@ const confirmReject = () => {
                         <textarea
                             v-model="rejectionReason"
                             rows="3"
-                            class="w-full rounded-xl border border-border bg-white text-xs text-text focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 placeholder-text-tertiary p-3 dark:bg-surface"
+                            class="w-full rounded-xl border border-border bg-white text-xs text-text focus:border-primary focus:ring-primary/20 focus:ring-2 placeholder-text-tertiary p-3 dark:bg-surface"
                             placeholder="Briefly note why this draft was rejected..."
                         />
                     </CardContent>
@@ -355,21 +358,7 @@ const confirmReject = () => {
             </div>
         </transition>
 
-        <!-- Toast -->
-        <transition name="fade">
-            <div
-                v-if="toast.visible"
-                :class="[
-                    'fixed right-6 bottom-6 z-50 flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md',
-                    toast.type === 'success' ? 'border-emerald-200/50 bg-emerald-50/80 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
-                    toast.type === 'error' ? 'border-red-200/50 bg-red-50/80 text-red-800 dark:bg-red-500/10 dark:text-red-400' :
-                    'border-blue-200/50 bg-blue-50/80 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400',
-                ]"
-            >
-                <Check class="h-4 w-4" />
-                <span class="text-xs font-bold">{{ toast.msg }}</span>
-            </div>
-        </transition>
+
     </AuthenticatedLayout>
 </template>
 

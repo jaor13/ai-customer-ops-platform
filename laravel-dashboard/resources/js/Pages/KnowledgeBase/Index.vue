@@ -142,7 +142,7 @@ const submitEdit = () => {
 };
 
 // --- badge helpers ---
-const categoryClass = 'text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20';
+const categoryClass = 'text-primary bg-primary-light border-primary/20';
 
 const statusMeta = (status) => ({
     active: { label: 'Active', class: 'text-emerald-600 bg-emerald-50 border-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20', icon: CheckCircle2 },
@@ -152,7 +152,7 @@ const statusMeta = (status) => ({
     archived: { label: 'Archived', class: 'text-slate-500 bg-slate-50 border-slate-200 dark:text-slate-400 dark:bg-slate-500/10 dark:border-slate-500/20', icon: null },
 }[status] ?? { label: status, class: 'text-slate-500 bg-slate-50 border-slate-200', icon: null });
 
-const selectClass = 'w-full rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 dark:bg-surface';
+const selectClass = 'w-full rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-primary focus:ring-primary/20 focus:ring-2 dark:bg-surface';
 const inputClass = selectClass + ' placeholder-text-tertiary';
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '');
 </script>
@@ -166,21 +166,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
         </template>
 
         <div class="space-y-6 max-w-7xl mx-auto">
-            <!-- Flash -->
-            <div
-                v-if="flashSuccess"
-                class="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-            >
-                <CheckCircle2 class="h-4 w-4 shrink-0" />
-                {{ flashSuccess }}
-            </div>
-            <div
-                v-if="flashError"
-                class="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
-            >
-                <AlertCircle class="h-4 w-4 shrink-0" />
-                {{ flashError }}
-            </div>
+
 
             <!-- Upload card -->
             <Card>
@@ -197,7 +183,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                         <div>
                             <div
                                 class="rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center gap-3 transition-colors"
-                                :class="dragging ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10' : 'border-border bg-surface-hover/40'"
+                                :class="dragging ? 'border-primary bg-primary-light/60' : 'border-border bg-surface-hover/40'"
                                 role="button"
                                 tabindex="0"
                                 aria-label="Upload a document"
@@ -208,7 +194,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                 @dragleave.prevent="dragging = false"
                                 @drop.prevent="onDrop"
                             >
-                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-light text-primary">
                                     <Upload class="h-5 w-5" />
                                 </div>
                                 <div v-if="!form.file">
@@ -216,7 +202,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                     <p class="text-[10px] text-text-tertiary mt-1">Supports PDF, DOCX, TXT, MD — max {{ maxMb }} MB</p>
                                 </div>
                                 <div v-else class="flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 dark:bg-surface">
-                                    <FileText class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                    <FileText class="h-3.5 w-3.5 text-primary" />
                                     <span class="text-xs font-bold text-text">{{ form.file.name }}</span>
                                     <span class="text-[10px] text-text-tertiary">{{ prettySize(form.file.size) }}</span>
                                     <button type="button" class="text-text-tertiary hover:text-danger" aria-label="Remove file" @click.stop="clearFile">
@@ -233,7 +219,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                             </div>
                             <InputError class="mt-1.5" :message="form.errors.file" />
                             <div v-if="form.progress" class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-hover">
-                                <div class="h-full rounded-full bg-blue-600 transition-all" :style="{ width: form.progress.percentage + '%' }" />
+                                <div class="h-full rounded-full bg-primary transition-all" :style="{ width: form.progress.percentage + '%' }" />
                             </div>
                         </div>
 
@@ -269,14 +255,14 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                 <div class="mt-1.5 inline-flex rounded-xl border border-border bg-surface-hover/40 p-0.5" role="group" aria-label="Versioning mode">
                                     <button
                                         type="button"
-                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                                        :class="uploadMode === 'new' ? 'bg-white text-blue-600 shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
+                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                        :class="uploadMode === 'new' ? 'bg-white text-primary shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
                                         @click="setMode('new')"
                                     >New</button>
                                     <button
                                         type="button"
-                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                                        :class="uploadMode === 'version' ? 'bg-white text-blue-600 shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
+                                        class="rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                        :class="uploadMode === 'version' ? 'bg-white text-primary shadow-sm dark:bg-surface' : 'text-text-tertiary hover:text-text'"
                                         :disabled="documentKeys.length === 0"
                                         @click="setMode('version')"
                                     >New version</button>
@@ -372,7 +358,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                 <tr v-for="doc in documents" :key="doc.id" class="hover:bg-surface-hover transition" :class="{ 'opacity-60': !doc.is_active }">
                                     <td class="px-5 py-3">
                                         <div class="flex items-center gap-2">
-                                            <FileText class="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                                            <FileText class="h-3.5 w-3.5 shrink-0 text-primary" />
                                             <div class="min-w-0">
                                                 <p class="truncate font-bold text-text">{{ doc.original_name || doc.doc_key }}</p>
                                                 <p class="flex items-center gap-1 text-[10px] text-text-tertiary">
@@ -410,7 +396,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                         <div class="inline-flex items-center gap-1">
                                             <button
                                                 type="button"
-                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-blue-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:bg-blue-500/10"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-primary-light hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                                                 :aria-label="`Edit ${doc.original_name || doc.doc_key}`"
                                                 @click="openEdit(doc)"
                                             >
@@ -418,7 +404,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
                                             </button>
                                             <button
                                                 type="button"
-                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-red-50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:hover:bg-red-500/10"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                                                 :aria-label="`Delete ${doc.original_name || doc.doc_key}`"
                                                 @click="confirmDelete(doc)"
                                             >
@@ -438,7 +424,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
         <Modal :show="deleting !== null" @close="closeDelete">
             <div class="p-6">
                 <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-danger dark:bg-red-500/10">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger">
                         <AlertCircle class="h-5 w-5" />
                     </div>
                     <div>
@@ -460,7 +446,7 @@ const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_
         <Modal :show="editing !== null" @close="closeEdit">
             <div class="p-6">
                 <div class="flex items-start gap-3 mb-5">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
                         <Pencil class="h-5 w-5" />
                     </div>
                     <div>

@@ -71,7 +71,7 @@ const categoryVariant = (cat) => ({ Hot: 'hot', Warm: 'warm', Cold: 'cold' }[cat
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '');
 
 const selectClass =
-    'rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 dark:bg-surface';
+    'rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-primary focus:ring-primary/20 focus:ring-2 dark:bg-surface';
 </script>
 
 <template>
@@ -128,17 +128,17 @@ const selectClass =
                             />
                         </div>
 
-                        <select v-model="form.category" :class="selectClass" class="px-3 py-2" aria-label="Filter by category">
+                        <select v-model="form.category" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by category">
                             <option value="">All categories</option>
                             <option v-for="c in options.categories" :key="c" :value="c">{{ c }}</option>
                         </select>
 
-                        <select v-model="form.source" :class="selectClass" class="px-3 py-2" aria-label="Filter by source">
+                        <select v-model="form.source" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by source">
                             <option value="">All sources</option>
                             <option v-for="s in options.sources" :key="s" :value="s">{{ capitalize(s) }}</option>
                         </select>
 
-                        <select v-model="form.status" :class="selectClass" class="px-3 py-2" aria-label="Filter by status">
+                        <select v-model="form.status" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by status">
                             <option value="">All statuses</option>
                             <option v-for="st in options.statuses" :key="st" :value="st">{{ capitalize(st) }}</option>
                         </select>
@@ -146,7 +146,7 @@ const selectClass =
                         <button
                             v-if="hasActiveFilters"
                             type="button"
-                            class="inline-flex items-center gap-1 rounded-full border border-border px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                            class="inline-flex items-center gap-1 rounded-full border border-border px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                             @click="clearFilters"
                         >
                             <X class="h-3 w-3" /> Clear

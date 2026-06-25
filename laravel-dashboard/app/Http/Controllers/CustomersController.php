@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FilterCustomersRequest;
 use App\Models\Customer;
 use App\Models\Interaction;
 use Inertia\Inertia;
@@ -9,9 +10,21 @@ use Inertia\Response;
 
 class CustomersController extends Controller
 {
-    public function index(): Response
+    public function index(FilterCustomersRequest $request): Response
     {
-        $customers = Customer::orderByDesc('created_at')
+        $filters = $request->filters();
+
+        $customers = Customer::query()
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $term = '%'.$filters['search'].'%';
+                $query->where(function ($q) use ($term) {
+                    $q->where('name', 'ilike', $term)
+                        ->orWhere('email', 'ilike', $term)
+                        ->orWhere('company', 'ilike', $term)
+                        ->orWhere('phone', 'ilike', $term);
+                });
+            })
+            ->orderByDesc('created_at')
             ->limit(100)
             ->get(['id', 'name', 'email', 'phone', 'company', 'created_at'])
             ->map(fn (Customer $c) => [
@@ -25,6 +38,7 @@ class CustomersController extends Controller
 
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
+            'filters' => $filters,
         ]);
     }
 

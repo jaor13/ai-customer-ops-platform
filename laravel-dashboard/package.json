@@ -21,10 +21,12 @@
     },
     "dependencies": {
         "@lucide/vue": "^1.17.0",
+        "apexcharts": "^5.15.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^1.0.0",
         "radix-vue": "^1.9.17",
-        "tailwind-merge": "^3.6.0"
+        "tailwind-merge": "^3.6.0",
+        "vue3-apexcharts": "^1.11.1"
     }
 }

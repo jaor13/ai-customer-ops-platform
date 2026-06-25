@@ -25,6 +25,7 @@ import {
     CardContent,
 } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
+import VueApexCharts from 'vue3-apexcharts';
 
 const props = defineProps({
     stats: { type: Object, required: true },
@@ -40,21 +41,91 @@ const chartData = computed(() =>
     props.leadCaptureSeries.length ? props.leadCaptureSeries : [{ day: '—', count: 0 }],
 );
 
-// Build a smooth area-chart path from the real 7-day series (auto-scales).
-const chartPath = computed(() => {
-    const data = chartData.value;
-    const max = Math.max(10, ...data.map((d) => d.count));
-    const w = 500;
-    const h = 180;
-    const step = data.length > 1 ? w / (data.length - 1) : w;
-    const points = data.map((d, i) => ({
-        x: i * step,
-        y: h - (d.count / max) * (h - 40),
-    }));
-    const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    const area = `${line} L ${w} ${h} L 0 ${h} Z`;
-    return { line, area, points };
-});
+const chartSeries = computed(() => [
+    {
+        name: 'Leads Captured',
+        data: chartData.value.map((d) => d.count),
+    },
+]);
+
+const chartOptions = computed(() => ({
+    chart: {
+        type: 'area',
+        height: 200,
+        toolbar: { show: false },
+        sparkline: { enabled: false },
+        fontFamily: 'Plus Jakarta Sans, sans-serif',
+        background: 'transparent',
+        animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            animateGradually: {
+                enabled: true,
+                delay: 150,
+            },
+            dynamicAnimation: {
+                enabled: true,
+                speed: 350,
+            },
+        },
+    },
+    colors: ['rgb(var(--color-primary))'],
+    stroke: {
+        curve: 'smooth',
+        width: 3,
+    },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.35,
+            opacityTo: 0.01,
+            stops: [0, 95, 100],
+        },
+    },
+    markers: {
+        size: 4,
+        colors: ['#ffffff'],
+        strokeColors: 'rgb(var(--color-primary))',
+        strokeWidth: 2,
+        hover: { size: 6 },
+    },
+    grid: {
+        borderColor: 'rgb(var(--color-border))',
+        strokeDashArray: 4,
+        padding: { left: 10, right: 10, top: 0, bottom: 0 },
+    },
+    xaxis: {
+        categories: chartData.value.map((d) => d.day),
+        labels: {
+            style: {
+                colors: '#94a3b8',
+                fontSize: '9px',
+                fontWeight: 700,
+            },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+    },
+    yaxis: {
+        labels: {
+            style: {
+                colors: '#94a3b8',
+                fontSize: '9px',
+                fontWeight: 700,
+            },
+        },
+        min: 0,
+        tickAmount: 3,
+    },
+    tooltip: {
+        theme: 'light',
+        x: { show: true },
+        marker: { show: false },
+    },
+    dataLabels: { enabled: false },
+}));
 
 const iconFor = (type) => {
     const map = {
@@ -180,34 +251,14 @@ const iconFor = (type) => {
                         </div>
                         <Badge variant="secondary">Last 7 Days</Badge>
                     </CardHeader>
-                    <CardContent>
-                        <div class="relative w-full h-[200px]">
-                            <svg class="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25" />
-                                        <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
-                                    </linearGradient>
-                                </defs>
-                                <line x1="0" y1="40" x2="500" y2="40" stroke="currentColor" class="text-border" stroke-width="1" />
-                                <line x1="0" y1="110" x2="500" y2="110" stroke="currentColor" class="text-border" stroke-width="1" />
-                                <line x1="0" y1="180" x2="500" y2="180" stroke="currentColor" class="text-border" stroke-width="1.5" />
-                                <path :d="chartPath.area" fill="url(#areaGrad)" />
-                                <path :d="chartPath.line" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                                <circle
-                                    v-for="(p, i) in chartPath.points"
-                                    :key="i"
-                                    :cx="p.x"
-                                    :cy="p.y"
-                                    r="4"
-                                    fill="white"
-                                    stroke="#2563eb"
-                                    stroke-width="2.5"
-                                />
-                            </svg>
-                        </div>
-                        <div class="grid grid-cols-7 mt-3 text-[9px] font-bold uppercase tracking-widest text-text-tertiary text-center">
-                            <span v-for="d in chartData" :key="d.day">{{ d.day }}</span>
+                    <CardContent class="pb-1.5 pl-1.5 pr-2 pt-0">
+                        <div class="relative w-full h-[210px] overflow-hidden">
+                            <VueApexCharts
+                                type="area"
+                                height="210"
+                                :options="chartOptions"
+                                :series="chartSeries"
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -257,13 +308,13 @@ const iconFor = (type) => {
                         ]"
                         :key="quick.name"
                         :href="route(quick.route)"
-                        class="group flex items-center gap-3 rounded-xl border border-border p-3 hover:border-blue-200 hover:shadow-md transition dark:hover:border-blue-500/30"
+                        class="group flex items-center gap-3 rounded-xl border border-border p-3 hover:border-primary/30 hover:shadow-md transition"
                     >
-                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform dark:bg-blue-500/10 dark:text-blue-400">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light text-primary group-hover:scale-110 transition-transform">
                             <component :is="quick.icon" class="h-4 w-4" />
                         </div>
                         <span class="text-xs font-bold text-text">{{ quick.name }}</span>
-                        <ArrowUpRight class="h-3 w-3 ml-auto text-text-tertiary group-hover:text-blue-600 transition" />
+                        <ArrowUpRight class="h-3 w-3 ml-auto text-text-tertiary group-hover:text-primary transition" />
                     </Link>
                 </CardContent>
             </Card>

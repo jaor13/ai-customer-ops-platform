@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     LayoutDashboard,
@@ -18,6 +18,9 @@ import {
     Sun,
     Moon,
     Search,
+    CheckCircle2,
+    AlertCircle,
+    Info,
 } from 'lucide-vue-next';
 import AppLogo from '@/Components/AppLogo.vue';
 
@@ -91,6 +94,32 @@ const handleClickOutside = (e) => {
 
 onMounted(() => window.addEventListener('click', handleClickOutside));
 onUnmounted(() => window.removeEventListener('click', handleClickOutside));
+
+// ── Global toast system ───────────────────────────────────────────
+const toast = ref({ visible: false, msg: '', type: 'success' });
+const showToast = (msg, type = 'success') => {
+    toast.value = { visible: true, msg, type };
+    setTimeout(() => {
+        if (toast.value.msg === msg) {
+            toast.value.visible = false;
+        }
+    }, 4000);
+};
+
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (flash?.success) {
+            showToast(flash.success, 'success');
+            page.props.flash.success = null;
+        }
+        if (flash?.error) {
+            showToast(flash.error, 'error');
+            page.props.flash.error = null;
+        }
+    },
+    { deep: true, immediate: true }
+);
 </script>
 
 <template>
@@ -106,7 +135,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
             <!-- collapse toggle -->
             <button
                 @click="toggleSidebar"
-                class="absolute -right-3 top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white text-text-tertiary hover:text-text shadow-md transition dark:bg-surface"
+                class="absolute -right-3 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white text-text-tertiary hover:text-text shadow-md transition dark:bg-surface"
                 :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
             >
                 <ChevronLeft v-if="!isCollapsed" class="h-3.5 w-3.5" />
@@ -114,7 +143,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
             </button>
 
             <!-- brand -->
-            <div class="flex items-center gap-2.5 border-b border-border p-4">
+            <div class="flex h-16 items-center gap-2.5 border-b border-border px-4 shrink-0">
                 <AppLogo size="sm" />
                 <div v-if="!isCollapsed" class="min-w-0">
                     <p class="text-xs font-extrabold font-display text-text leading-tight truncate">AI Ops</p>
@@ -138,7 +167,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                                 :class="[
                                     'flex items-center rounded-xl border border-transparent px-3 py-2 text-xs font-bold transition-all',
                                     isActive(item.route)
-                                        ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
+                                        ? 'bg-primary-light text-primary border-primary/20'
                                         : 'text-text-secondary hover:text-text hover:bg-surface-hover',
                                     isCollapsed ? 'justify-center' : 'gap-3',
                                 ]"
@@ -169,7 +198,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                     class="flex items-center w-full rounded-xl p-1.5 hover:bg-surface-hover transition"
                     :class="isCollapsed ? 'justify-center' : 'gap-2.5'"
                 >
-                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                         {{ page.props.auth.user.name.charAt(0).toUpperCase() }}
                     </div>
                     <div v-if="!isCollapsed" class="min-w-0 flex-1 text-left">
@@ -210,7 +239,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
             :class="isCollapsed ? 'lg:pl-16' : 'lg:pl-60'"
         >
             <!-- top bar -->
-            <header class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-white/70 backdrop-blur-md px-4 sm:px-6 dark:bg-surface/70">
+            <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-white/70 backdrop-blur-md px-4 sm:px-6 dark:bg-surface/70">
                 <div class="flex items-center gap-3">
                     <button
                         @click="showMobileMenu = true"
@@ -264,7 +293,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                             >
                                 <div class="flex items-center justify-between border-b border-border pb-2.5 mb-2">
                                     <h3 class="text-xs font-bold text-text">Notifications</h3>
-                                    <span v-if="notifications.length > 0" class="text-[9px] font-bold text-blue-600 dark:text-blue-400">
+                                    <span v-if="notifications.length > 0" class="text-[9px] font-bold text-primary">
                                         {{ notifications.length }} new
                                     </span>
                                 </div>
@@ -280,8 +309,8 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                                             <div
                                                 class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
                                                 :class="n.type === 'ticket'
-                                                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
-                                                    : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'"
+                                                    ? 'bg-warning/10 text-warning'
+                                                    : 'bg-primary-light text-primary'"
                                             >
                                                 <component :is="notifIcon(n.type)" class="h-3.5 w-3.5" />
                                             </div>
@@ -347,7 +376,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                                         :class="[
                                             'flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-bold transition',
                                             isActive(item.route)
-                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                                                ? 'bg-primary-light text-primary'
                                                 : 'text-text-secondary hover:text-text hover:bg-surface-hover',
                                         ]"
                                         @click="showMobileMenu = false"
@@ -366,6 +395,32 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                         </div>
                     </nav>
                 </div>
+            </div>
+        </transition>
+
+        <!-- Global Toast -->
+        <transition name="fade">
+            <div
+                v-if="toast.visible"
+                :class="[
+                    'fixed right-6 bottom-6 z-50 flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md transition-all duration-300',
+                    toast.type === 'success' ? 'border-success/20 bg-success/10 text-success' :
+                    toast.type === 'error' ? 'border-danger/20 bg-danger/10 text-danger' :
+                    'border-primary/20 bg-primary-light text-primary',
+                ]"
+            >
+                <component
+                    :is="toast.type === 'success' ? CheckCircle2 : toast.type === 'error' ? AlertCircle : Info"
+                    class="h-4 w-4 shrink-0"
+                />
+                <span class="text-xs font-bold">{{ toast.msg }}</span>
+                <button
+                    @click="toast.visible = false"
+                    class="ml-1 rounded-lg p-0.5 text-text-secondary hover:bg-surface-hover hover:text-text transition"
+                    aria-label="Close notification"
+                >
+                    <X class="h-3.5 w-3.5" />
+                </button>
             </div>
         </transition>
     </div>

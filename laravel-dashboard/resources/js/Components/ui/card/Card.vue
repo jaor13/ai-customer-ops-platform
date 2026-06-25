@@ -10,7 +10,7 @@ const props = defineProps({
 const classes = computed(() =>
     cn(
         'rounded-2xl border border-border bg-white/80 backdrop-blur-sm text-text shadow-sm transition-all duration-300 dark:bg-surface/80',
-        props.interactive && 'hover:border-blue-200 hover:shadow-lg dark:hover:border-blue-500/30',
+        props.interactive && 'hover:border-primary/30 hover:shadow-lg',
         props.class,
     ),
 );

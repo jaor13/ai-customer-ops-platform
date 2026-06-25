@@ -59,9 +59,9 @@ usePoll(20000, { only: ['tickets', 'stats'] });
 const priorityVariant = (p) => ({ CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'default', LOW: 'secondary' }[p] || 'secondary');
 
 const statusColor = (s) => ({
-    open: 'text-amber-600 dark:text-amber-400',
-    pending_response: 'text-blue-600 dark:text-blue-400',
-    resolved: 'text-emerald-600 dark:text-emerald-400',
+    open: 'text-warning',
+    pending_response: 'text-primary',
+    resolved: 'text-success',
     closed: 'text-text-tertiary',
 }[s] || 'text-text');
 
@@ -83,7 +83,7 @@ const updateStatus = (ticket, status) => {
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '');
 
 const selectClass =
-    'rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 dark:bg-surface';
+    'rounded-xl border-border bg-white text-text text-xs shadow-sm transition-all duration-200 focus:border-primary focus:ring-primary/20 focus:ring-2 dark:bg-surface';
 </script>
 
 <template>
@@ -140,17 +140,17 @@ const selectClass =
                             />
                         </div>
 
-                        <select v-model="form.category" :class="selectClass" class="px-3 py-2" aria-label="Filter by category">
+                        <select v-model="form.category" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by category">
                             <option value="">All categories</option>
                             <option v-for="c in options.categories" :key="c" :value="c">{{ c }}</option>
                         </select>
 
-                        <select v-model="form.priority" :class="selectClass" class="px-3 py-2" aria-label="Filter by priority">
+                        <select v-model="form.priority" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by priority">
                             <option value="">All priorities</option>
                             <option v-for="p in options.priorities" :key="p" :value="p">{{ capitalize(p) }}</option>
                         </select>
 
-                        <select v-model="form.status" :class="selectClass" class="px-3 py-2" aria-label="Filter by status">
+                        <select v-model="form.status" :class="selectClass" class="pl-3 pr-9 py-2" aria-label="Filter by status">
                             <option value="">All statuses</option>
                             <option v-for="st in options.statuses" :key="st" :value="st">{{ capitalize(st) }}</option>
                         </select>
@@ -158,7 +158,7 @@ const selectClass =
                         <button
                             v-if="hasActiveFilters"
                             type="button"
-                            class="inline-flex items-center gap-1 rounded-full border border-border px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                            class="inline-flex items-center gap-1 rounded-full border border-border px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                             @click="clearFilters"
                         >
                             <X class="h-3 w-3" /> Clear
@@ -206,7 +206,7 @@ const selectClass =
                                             :disabled="updatingId === t.id"
                                             @change="updateStatus(t, $event.target.value)"
                                             :class="statusColor(t.status)"
-                                            class="rounded-lg border border-border bg-white text-[10px] font-bold px-2 py-1 focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 cursor-pointer disabled:opacity-50 dark:bg-surface"
+                                            class="rounded-lg border border-border bg-white text-[10px] font-bold pl-2 pr-7 py-1 focus:border-primary focus:ring-primary/20 focus:ring-2 cursor-pointer disabled:opacity-50 dark:bg-surface"
                                             aria-label="Change ticket status"
                                         >
                                             <option v-for="s in options.allStatuses" :key="s" :value="s">{{ capitalize(s) }}</option>
