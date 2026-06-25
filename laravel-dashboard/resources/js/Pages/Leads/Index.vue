@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePoll } from '@inertiajs/vue3';
 import { Users, Search, X, Flame, Thermometer, Snowflake } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card';
@@ -54,6 +54,10 @@ const clearFilters = () => {
     form.value = { search: '', category: '', source: '', status: '' };
     reload();
 };
+
+// Live updates — re-fetch just the list + stats every 20s (pauses when the
+// tab is backgrounded; preserves the current filters in the URL).
+usePoll(20000, { only: ['leads', 'stats'] });
 
 const scoreVariant = (score) => {
     if (score === null || score === undefined) return 'secondary';

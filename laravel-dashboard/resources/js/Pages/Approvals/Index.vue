@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePoll } from '@inertiajs/vue3';
 import {
     Check,
     X,
@@ -45,6 +45,26 @@ watch(
         editedBody.value = val ? val.edited_body || val.draft_body : '';
     },
     { immediate: true },
+);
+
+// Live updates — pull newly-queued drafts in without a reload (skip in demo
+// mode). usePoll pauses automatically when the tab is backgrounded.
+usePoll(20000, { only: ['approvals'] }, { autoStart: !props.demoMode });
+
+// Merge incoming drafts into the local list, preserving existing item object
+// references so the current selection and the in-progress edit are untouched.
+watch(
+    () => props.approvals,
+    (incoming) => {
+        if (props.demoMode) return;
+        const existingIds = new Set(localList.value.map((a) => a.id));
+        for (const item of incoming) {
+            if (!existingIds.has(item.id)) localList.value.push(item);
+        }
+        if (selectedId.value === null && localList.value.length) {
+            selectedId.value = localList.value[0].id;
+        }
+    },
 );
 
 const priorityVariant = (p) => {
