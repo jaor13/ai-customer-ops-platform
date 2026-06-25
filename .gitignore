@@ -66,3 +66,4 @@ Thumbs.db
 # ===========================
 /n8n-workflows/**/*.sh
 export-workflows.sh
+qdrant-snapshot-2026-06-24/
