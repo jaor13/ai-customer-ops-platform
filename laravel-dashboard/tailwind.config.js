@@ -20,40 +20,40 @@ export default {
             },
             colors: {
                 primary: {
-                    DEFAULT: "var(--color-primary)",
-                    hover: "var(--color-primary-hover)",
-                    light: "var(--color-primary-light)",
+                    DEFAULT: "rgb(var(--color-primary) / <alpha-value>)",
+                    hover: "rgb(var(--color-primary-hover) / <alpha-value>)",
+                    light: "rgb(var(--color-primary-light) / <alpha-value>)",
                 },
                 secondary: {
-                    DEFAULT: "var(--color-secondary)",
+                    DEFAULT: "rgb(var(--color-secondary) / <alpha-value>)",
                 },
                 accent: {
-                    DEFAULT: "var(--color-accent)",
+                    DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
                 },
                 surface: {
-                    DEFAULT: "var(--color-surface)",
-                    hover: "var(--color-surface-hover)",
+                    DEFAULT: "rgb(var(--color-surface) / <alpha-value>)",
+                    hover: "rgb(var(--color-surface-hover) / <alpha-value>)",
                 },
                 border: {
-                    DEFAULT: "var(--color-border)",
+                    DEFAULT: "rgb(var(--color-border) / <alpha-value>)",
                 },
                 text: {
-                    DEFAULT: "var(--color-text)",
-                    secondary: "var(--color-text-secondary)",
-                    tertiary: "var(--color-text-tertiary)",
+                    DEFAULT: "rgb(var(--color-text) / <alpha-value>)",
+                    secondary: "rgb(var(--color-text-secondary) / <alpha-value>)",
+                    tertiary: "rgb(var(--color-text-tertiary) / <alpha-value>)",
                 },
                 success: {
-                    DEFAULT: "var(--color-success)",
+                    DEFAULT: "rgb(var(--color-success) / <alpha-value>)",
                 },
                 warning: {
-                    DEFAULT: "var(--color-warning)",
+                    DEFAULT: "rgb(var(--color-warning) / <alpha-value>)",
                 },
                 danger: {
-                    DEFAULT: "var(--color-danger)",
+                    DEFAULT: "rgb(var(--color-danger) / <alpha-value>)",
                 },
             },
             backgroundColor: {
-                page: "var(--color-background)",
+                page: "rgb(var(--color-background) / <alpha-value>)",
             },
         },
     },

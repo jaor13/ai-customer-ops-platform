@@ -20,9 +20,9 @@ import { Link } from '@inertiajs/vue3';
                 <Link href="/" class="flex items-center gap-2.5 group">
                     <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform duration-300">
                         <svg class="h-4.5 w-4.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <polygon points="50,12 88,34 88,78 50,100 12,78 12,34" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
-                            <path d="M50,12 L50,56 L88,78 M50,56 L12,78" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
-                            <circle cx="50" cy="56" r="10" fill="currentColor"/>
+                            <polygon points="50,8 88,30 88,74 50,96 12,74 12,30" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
+                            <path d="M50,8 L50,52 L88,74 M50,52 L12,74" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+                            <circle cx="50" cy="52" r="10" fill="currentColor"/>
                         </svg>
                     </div>
                     <span class="text-xs font-bold font-display uppercase tracking-widest text-white group-hover:text-blue-400 transition-colors">AI Ops</span>
@@ -78,9 +78,9 @@ import { Link } from '@inertiajs/vue3';
                     <Link href="/" class="flex items-center gap-2.5 group">
                         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-md">
                             <svg class="h-4.5 w-4.5 text-white" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <polygon points="50,12 88,34 88,78 50,100 12,78 12,34" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
-                                <path d="M50,12 L50,56 L88,78 M50,56 L12,78" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
-                                <circle cx="50" cy="56" r="10" fill="currentColor"/>
+                                <polygon points="50,8 88,30 88,74 50,96 12,74 12,30" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>
+                                <path d="M50,8 L50,52 L88,74 M50,52 L12,74" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+                                <circle cx="50" cy="52" r="10" fill="currentColor"/>
                             </svg>
                         </div>
                         <span class="text-xs font-bold font-display uppercase tracking-widest text-slate-900">AI Ops</span>

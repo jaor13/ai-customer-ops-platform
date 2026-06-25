@@ -26,33 +26,90 @@ class ApprovalsController extends Controller
             ]);
         }
 
-        $approvals = ApprovalQueue::with(['ticket.customer', 'customer'])
+        $approvals = ApprovalQueue::with(['ticket.customer', 'customer', 'lead'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function (ApprovalQueue $item) {
-                $customer = $item->customer ?? optional($item->ticket)->customer;
-
-                return [
-                    'id' => $item->id,
-                    'customer_name' => $customer?->name ?? 'Unknown',
-                    'customer_email' => $customer?->email ?? 'unknown@example.com',
-                    'subject' => $item->ticket?->subject ?? 'Inquiry',
-                    'body' => $item->ticket?->body ?? 'No message body provided.',
-                    'draft_body' => $item->draft_body,
-                    'edited_body' => $item->edited_body,
-                    'context_sources' => $item->context_sources ?? [],
-                    'priority' => strtoupper($item->ticket?->priority ?? 'MEDIUM'),
-                    'category' => $item->ticket?->category ?? 'General',
-                    'status' => $item->status,
-                    'created_at' => optional($item->created_at)->diffForHumans() ?? 'Just now',
-                ];
-            });
+            ->map(
+                fn (ApprovalQueue $item) => $item->type === 'lead_welcome'
+                ? $this->mapLeadWelcome($item)
+                : $this->mapTicketReply($item)
+            );
 
         return Inertia::render('Approvals/Index', [
             'approvals' => $approvals,
             'demoMode' => false,
         ]);
+    }
+
+    /**
+     * Shape a Phase 1 lead-welcome draft (no ticket — uses lead + the
+     * recipient_email/subject columns written by the lead-capture workflow).
+     */
+    private function mapLeadWelcome(ApprovalQueue $item): array
+    {
+        $lead = $item->lead;
+        $category = ucfirst(strtolower($lead?->category ?? 'lead'));
+
+        $body = $lead
+            ? "New inbound lead — the AI drafted a personalized welcome grounded in the knowledge base.\n\n"
+            .'Company: '.($lead->company ?: '—')."\n"
+            .'Lead score: '.($lead->score !== null ? $lead->score : '—')." ({$category})\n"
+            .'Source: '.($lead->source ?: '—')
+            : 'New lead welcome draft.';
+
+        return [
+            'id' => $item->id,
+            'type' => 'lead_welcome',
+            'customer_name' => $lead?->name ?? 'New Lead',
+            'customer_email' => $item->recipient_email ?? $lead?->email ?? 'unknown@example.com',
+            'subject' => $item->subject ?? 'Welcome',
+            'body' => $body,
+            'draft_body' => $item->draft_body,
+            'edited_body' => $item->edited_body,
+            'context_sources' => $item->context_sources ?? [],
+            'priority' => $this->leadPriority($lead?->category),
+            'category' => $category,
+            'status' => $item->status,
+            'created_at' => optional($item->created_at)->diffForHumans() ?? 'Just now',
+        ];
+    }
+
+    /**
+     * Shape a Phase 2 ticket-reply draft (derived from the related ticket).
+     */
+    private function mapTicketReply(ApprovalQueue $item): array
+    {
+        $customer = $item->customer ?? optional($item->ticket)->customer;
+
+        return [
+            'id' => $item->id,
+            'type' => 'ticket_reply',
+            'customer_name' => $customer?->name ?? 'Unknown',
+            'customer_email' => $item->recipient_email ?? $customer?->email ?? 'unknown@example.com',
+            'subject' => $item->subject ?? $item->ticket?->subject ?? 'Inquiry',
+            'body' => $item->ticket?->body ?? 'No message body provided.',
+            'draft_body' => $item->draft_body,
+            'edited_body' => $item->edited_body,
+            'context_sources' => $item->context_sources ?? [],
+            'priority' => strtoupper($item->ticket?->priority ?? 'MEDIUM'),
+            'category' => $item->ticket?->category ?? 'General',
+            'status' => $item->status,
+            'created_at' => optional($item->created_at)->diffForHumans() ?? 'Just now',
+        ];
+    }
+
+    /**
+     * Map a lead score-category (Hot/Warm/Cold) to a UI priority level.
+     */
+    private function leadPriority(?string $category): string
+    {
+        return match (strtolower((string) $category)) {
+            'hot' => 'HIGH',
+            'warm' => 'MEDIUM',
+            'cold' => 'LOW',
+            default => 'MEDIUM',
+        };
     }
 
     /**
@@ -90,6 +147,7 @@ class ApprovalsController extends Controller
         return [
             [
                 'id' => 101,
+                'type' => 'ticket_reply',
                 'customer_name' => 'Sarah Jenkins',
                 'customer_email' => 'sarah.j@vaporscale.com',
                 'subject' => 'API Limits & Custom Webhooks',
@@ -107,6 +165,7 @@ class ApprovalsController extends Controller
             ],
             [
                 'id' => 102,
+                'type' => 'lead_welcome',
                 'customer_name' => 'Marcus Thorne',
                 'customer_email' => 'marcus.t@solosaas.io',
                 'subject' => 'Pre-Seed Startup Discount Inquiry',
@@ -124,6 +183,7 @@ class ApprovalsController extends Controller
             ],
             [
                 'id' => 103,
+                'type' => 'ticket_reply',
                 'customer_name' => 'Dave Miller',
                 'customer_email' => 'dave.miller@nexustech.org',
                 'subject' => 'Database Sync Timeout error at midnight',

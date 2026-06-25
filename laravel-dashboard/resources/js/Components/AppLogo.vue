@@ -28,12 +28,12 @@ const iconClass = computed(() => sizeMap[props.size].icon);
     <div :class="boxClass">
         <svg :class="iconClass" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polygon
-                points="50,12 88,34 88,78 50,100 12,78 12,34"
+                points="50,8 88,30 88,74 50,96 12,74 12,30"
                 stroke="currentColor"
                 stroke-width="8"
                 stroke-linejoin="round"
             />
-            <polygon points="50,30 74,44 74,70 50,84 26,70 26,44" fill="currentColor" />
+            <polygon points="50,26 74,40 74,66 50,80 26,66 26,40" fill="currentColor" />
         </svg>
     </div>
 </template>

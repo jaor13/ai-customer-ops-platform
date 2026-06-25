@@ -86,7 +86,7 @@ const approve = () => {
 
     isSubmitting.value = true;
     router.post(
-        route('approvals.approve', { id: selected.value.id }),
+        route('approvals.approve', selected.value.id),
         { edited_body: editedBody.value },
         {
             preserveScroll: true,
@@ -125,7 +125,7 @@ const confirmReject = () => {
 
     isSubmitting.value = true;
     router.post(
-        route('approvals.reject', { id: selected.value.id }),
+        route('approvals.reject', selected.value.id),
         { rejection_reason: rejectionReason.value },
         {
             preserveScroll: true,
@@ -228,16 +228,19 @@ const confirmReject = () => {
                                     </CardDescription>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-1.5">
+                                    <Badge variant="secondary" class="font-mono">
+                                        {{ selected.type === 'lead_welcome' ? 'Lead Welcome' : 'Ticket Reply' }}
+                                    </Badge>
                                     <Badge :variant="priorityVariant(selected.priority)">{{ selected.priority }}</Badge>
                                     <Badge variant="secondary">{{ selected.category }}</Badge>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent class="space-y-4">
-                            <!-- Original email -->
+                            <!-- Original email / lead context -->
                             <section>
                                 <h4 class="text-[9px] font-bold uppercase tracking-widest text-text-tertiary mb-2">
-                                    Original message
+                                    {{ selected.type === 'lead_welcome' ? 'Lead details' : 'Original message' }}
                                 </h4>
                                 <div class="rounded-xl border border-border bg-surface-hover/40 p-4 text-xs text-text-secondary leading-relaxed whitespace-pre-line">
                                     {{ selected.body }}

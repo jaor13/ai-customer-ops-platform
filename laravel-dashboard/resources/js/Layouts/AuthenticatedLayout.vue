@@ -44,6 +44,9 @@ const toggleDarkMode = () => {
 // ── User menu ──────────────────────────────────────────────────
 const showUserDropdown = ref(false);
 
+// ── Notifications dropdown ─────────────────────────────────────
+const showNotificationDropdown = ref(false);
+
 // ── Pending approvals badge (shared from server via Inertia props) ─
 const pendingApprovalsCount = computed(
     () => page.props.pendingApprovalsCount ?? 0,
@@ -79,6 +82,7 @@ const isActive = (routeName) => {
 // ── Close dropdowns on outside click ───────────────────────────
 const handleClickOutside = (e) => {
     if (!e.target.closest('[data-user-menu]')) showUserDropdown.value = false;
+    if (!e.target.closest('[data-notif-menu]')) showNotificationDropdown.value = false;
 };
 
 onMounted(() => window.addEventListener('click', handleClickOutside));
@@ -236,16 +240,42 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                         <Moon v-else class="h-4 w-4" />
                     </button>
 
-                    <button
-                        class="relative rounded-xl p-2 text-text-secondary hover:bg-surface-hover hover:text-text transition"
-                        aria-label="Notifications"
-                    >
-                        <Bell class="h-4 w-4" />
-                        <span
-                            v-if="pendingApprovalsCount > 0"
-                            class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500"
-                        />
-                    </button>
+                    <div class="relative" data-notif-menu>
+                        <button
+                            @click="showNotificationDropdown = !showNotificationDropdown"
+                            class="relative rounded-xl p-2 text-text-secondary hover:bg-surface-hover hover:text-text transition"
+                            aria-label="Notifications"
+                        >
+                            <Bell class="h-4 w-4" />
+                            <span
+                                v-if="pendingApprovalsCount > 0"
+                                class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500"
+                            />
+                        </button>
+
+                        <transition name="fade">
+                            <div
+                                v-if="showNotificationDropdown"
+                                class="absolute right-0 mt-2 z-50 w-72 rounded-2xl border border-border bg-white/95 backdrop-blur-md p-4 shadow-xl dark:bg-surface/95"
+                            >
+                                <div class="flex items-center justify-between border-b border-border pb-2.5 mb-3">
+                                    <h3 class="text-xs font-bold text-text">Notifications</h3>
+                                    <span v-if="pendingApprovalsCount > 0" class="text-[9px] font-bold text-blue-600 dark:text-blue-400">
+                                        {{ pendingApprovalsCount }} pending
+                                    </span>
+                                </div>
+                                <div class="py-4 flex flex-col items-center justify-center text-center gap-2">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-surface-hover text-text-tertiary">
+                                        <Bell class="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-text">All caught up!</p>
+                                        <p class="text-[10px] text-text-tertiary mt-0.5">No new notifications at this time.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
                 </div>
             </header>
 

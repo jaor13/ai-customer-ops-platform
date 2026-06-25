@@ -48,7 +48,7 @@ const accentMap = {
 const cardClasses = computed(() =>
     cn(
         'group rounded-2xl border border-border bg-white/80 backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-lg dark:bg-surface/80',
-        accentMap[props.accent].ring,
+        (accentMap[props.accent] ?? accentMap.blue).ring,
         props.class,
     ),
 );
@@ -56,7 +56,7 @@ const cardClasses = computed(() =>
 const iconClasses = computed(() =>
     cn(
         'flex h-8 w-8 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110',
-        accentMap[props.accent].icon,
+        (accentMap[props.accent] ?? accentMap.blue).icon,
     ),
 );
 </script>
