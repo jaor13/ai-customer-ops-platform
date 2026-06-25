@@ -295,7 +295,9 @@ const confirmReject = () => {
                                         class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1 text-[10px] font-semibold text-text-secondary dark:bg-surface"
                                     >
                                         <FileText class="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                                        {{ src.name || src.document || 'Document' }}
+                                        {{ src.name || src.document || src.doc_key || 'Document' }}
+                                        <span v-if="src.version" class="text-[9px] font-mono text-text-tertiary">v{{ src.version }}</span>
+                                        <span v-if="src.category" class="text-[9px] font-mono text-blue-600/70 dark:text-blue-400/70">{{ src.category }}</span>
                                         <span v-if="src.confidence || src.score" class="text-[9px] font-mono text-text-tertiary">
                                             {{ src.confidence || `${Math.round(src.score * 100)}%` }}
                                         </span>
