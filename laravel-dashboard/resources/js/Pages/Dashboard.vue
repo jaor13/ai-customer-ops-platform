@@ -1,10 +1,11 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Head, Link, usePoll } from '@inertiajs/vue3';
 import {
     Users,
     Inbox,
     ShieldCheck,
-    Zap,
+    Send,
     ArrowUpRight,
     ExternalLink,
     Sparkles,
@@ -27,34 +28,33 @@ import { Badge } from '@/Components/ui/badge';
 
 const props = defineProps({
     stats: { type: Object, required: true },
+    leadCaptureSeries: { type: Array, default: () => [] },
     activities: { type: Array, default: () => [] },
     demoMode: { type: Boolean, default: false },
 });
 
-const chartData = [
-    { day: 'Mon', count: 12 },
-    { day: 'Tue', count: 18 },
-    { day: 'Wed', count: 15 },
-    { day: 'Thu', count: 29 },
-    { day: 'Fri', count: 36 },
-    { day: 'Sat', count: 45 },
-    { day: 'Sun', count: 52 },
-];
+// Live refresh (tab-aware) — keep the dashboard current without a reload.
+usePoll(30000, { only: ['stats', 'leadCaptureSeries', 'activities'] });
 
-// Build smooth area-chart path
-const chartPath = (() => {
-    const max = 60;
+const chartData = computed(() =>
+    props.leadCaptureSeries.length ? props.leadCaptureSeries : [{ day: '—', count: 0 }],
+);
+
+// Build a smooth area-chart path from the real 7-day series (auto-scales).
+const chartPath = computed(() => {
+    const data = chartData.value;
+    const max = Math.max(10, ...data.map((d) => d.count));
     const w = 500;
     const h = 180;
-    const step = w / (chartData.length - 1);
-    const points = chartData.map((d, i) => ({
+    const step = data.length > 1 ? w / (data.length - 1) : w;
+    const points = data.map((d, i) => ({
         x: i * step,
         y: h - (d.count / max) * (h - 40),
     }));
     const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
     const area = `${line} L ${w} ${h} L 0 ${h} Z`;
     return { line, area, points };
-})();
+});
 
 const iconFor = (type) => {
     const map = {
@@ -133,36 +133,39 @@ const iconFor = (type) => {
                 <StatCard label="Total Leads" :value="stats.leadsCount" accent="blue">
                     <template #icon><Users class="h-4 w-4" /></template>
                     <template #trend>
-                        <Badge variant="success" class="text-[9px]">↑ 12.4%</Badge>
-                        <span class="text-[9px] text-text-tertiary">vs last month</span>
+                        <Badge variant="success" class="text-[9px]">+{{ stats.leadsThisWeek }}</Badge>
+                        <span class="text-[9px] text-text-tertiary">this week</span>
                     </template>
                 </StatCard>
 
                 <StatCard label="Open Tickets" :value="stats.openTicketsCount" accent="sky">
                     <template #icon><Inbox class="h-4 w-4" /></template>
                     <template #trend>
-                        <Badge variant="default" class="text-[9px]">3 urgent</Badge>
-                        <span class="text-[9px] text-text-tertiary">awaiting triage</span>
+                        <Badge :variant="stats.urgentTicketsCount > 0 ? 'danger' : 'secondary'" class="text-[9px]">
+                            {{ stats.urgentTicketsCount }} urgent
+                        </Badge>
+                        <span class="text-[9px] text-text-tertiary">high / critical</span>
                     </template>
                 </StatCard>
 
                 <StatCard label="Pending Approvals" :value="stats.pendingApprovalsCount" accent="indigo">
                     <template #icon><ShieldCheck class="h-4 w-4" /></template>
                     <template #trend>
-                        <Link :href="route('approvals.index')">
+                        <Link v-if="stats.pendingApprovalsCount > 0" :href="route('approvals.index')">
                             <Badge variant="danger" class="cursor-pointer hover:opacity-80 text-[9px]">
                                 Action required
                             </Badge>
                         </Link>
+                        <Badge v-else variant="success" class="text-[9px]">All clear</Badge>
                         <span class="text-[9px] text-text-tertiary">needs review</span>
                     </template>
                 </StatCard>
 
-                <StatCard label="AI Response Time" :value="stats.responseTime" accent="emerald">
-                    <template #icon><Zap class="h-4 w-4" /></template>
+                <StatCard label="Emails Sent" :value="stats.sentCount" accent="emerald">
+                    <template #icon><Send class="h-4 w-4" /></template>
                     <template #trend>
-                        <Badge variant="success" class="text-[9px]">{{ stats.accuracyRate }}</Badge>
-                        <span class="text-[9px] text-text-tertiary">RAG accuracy</span>
+                        <Badge variant="success" class="text-[9px]">{{ stats.customersCount }} customers</Badge>
+                        <span class="text-[9px] text-text-tertiary">after human review</span>
                     </template>
                 </StatCard>
             </div>
@@ -173,7 +176,7 @@ const iconFor = (type) => {
                     <CardHeader class="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Lead Capture Activity</CardTitle>
-                            <CardDescription>Automated qualification rate over the last 7 days</CardDescription>
+                            <CardDescription>New leads captured per day over the last 7 days</CardDescription>
                         </div>
                         <Badge variant="secondary">Last 7 Days</Badge>
                     </CardHeader>
