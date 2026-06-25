@@ -94,7 +94,7 @@ class TicketsController extends Controller
             ->selectRaw('COUNT(*) AS total')
             ->selectRaw("COUNT(*) FILTER (WHERE status = 'open') AS open")
             ->selectRaw("COUNT(*) FILTER (WHERE priority IN ('HIGH','CRITICAL') AND status IN ('open','pending_response')) AS urgent")
-            ->selectRaw("COUNT(*) FILTER (WHERE status = 'resolved') AS resolved")
+            ->selectRaw("COUNT(*) FILTER (WHERE status IN ('resolved','closed')) AS resolved")
             ->first();
 
         return [

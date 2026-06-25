@@ -59,3 +59,10 @@ Thumbs.db
 /docker/.env
 /docker/certbot/
 /docker/ollama
+
+# ===========================
+# n8n export helper scripts (may embed the n8n API key / basic-auth)
+# Recreate on the VPS, run, then delete — never commit. Exported *.json are fine.
+# ===========================
+/n8n-workflows/**/*.sh
+export-workflows.sh

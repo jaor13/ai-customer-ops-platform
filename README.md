@@ -1,89 +1,161 @@
 # AI Customer Operations Platform
 
-An AI-powered automation stack for small-to-medium businesses that handles lead capture, email triage, knowledge-base-powered replies, and human-in-the-loop approval — all from a single dashboard.
+An AI-powered customer operations stack that captures leads, triages inbound email, drafts knowledge-grounded replies, and keeps a human in the loop for every outbound message — all from a single dashboard.
+
+> **About this project**
+> I built this on my own to go deep on **n8n workflow automation** and **production-grade RAG** (retrieval-augmented generation) — not just a toy "embed → search → prompt" demo, but the harder parts: hybrid retrieval, cross-encoder reranking, document versioning, authority ranking, and self-hosted models across two servers. It's a learning project and portfolio piece, so the goal was to make engineering decisions the way a real team would, and to document the *why* behind each one.
+
+---
+
+## Why it's more than a "simple RAG"
+
+Most RAG demos stop at: chunk a document, embed it, do a vector top-K, stuff it into a prompt. That breaks quickly on real content. This system addresses the failure modes that actually bite in production:
+
+| Problem with naive RAG | What this project does |
+|---|---|
+| Vector search misses exact tokens (prices like `$149`, SKUs, plan names) | **Hybrid search** — dense vectors **+** BM25 sparse vectors fused with Reciprocal Rank Fusion (RRF) in Qdrant's Query API |
+| Top-K by cosine similarity is a weak ranking | **Cross-encoder reranking** — a self-hosted `bge-reranker-v2-m3` re-reads the query against each candidate and reorders by true relevance |
+| Old/edited documents silently pollute answers forever | **Versioning + active-only retrieval** — re-uploading a doc supersedes the old version; retrieval filters `status = active` |
+| Two similar docs, which one wins? | **Authority weighting** — official sources outrank casual ones even at slightly lower similarity |
+| Long chunks overflow the model context | **Token-budget guard** — context is capped and de-duplicated before it reaches the LLM |
+| The AI can confidently send a wrong answer | **Human-in-the-loop** — every draft is reviewed/edited/approved by a person before it sends |
+
+The retrieval pipeline, end to end:
+
+```
+query
+  ├─► Ollama  (nomic-embed-text, 768-dim dense vector)   ── VPS 2
+  └─► BM25 sparse encoder (FastEmbed)                      ── VPS 1
+        │
+        ▼
+   Qdrant Query API  →  prefetch(dense) + prefetch(sparse)  →  RRF fusion
+        │              (filter: status = active, top-20)
+        ▼
+   bge-reranker-v2-m3 via llama.cpp /v1/rerank  ── VPS 2   →  top-5 (fail-open)
+        │
+        ▼
+   authority tiebreak + effective-date guard + dedup + token budget
+        │
+        ▼
+   grounded context → LLM draft → human approval → send
+```
+
+---
+
+## Architecture
+
+Two VPS, fully self-hosted models (zero per-call AI cost for embeddings & reranking):
+
+- **VPS 1 (app server):** Laravel dashboard, n8n, PostgreSQL, Qdrant, the BM25 sparse encoder, Nginx + SSL.
+- **VPS 2 (inference server):** Ollama (embeddings) + a llama.cpp reranker. Ports firewalled so only VPS 1 can reach them.
+
+```
+                        ┌──────────────────────── VPS 1 (app) ────────────────────────┐
+  Website form ──POST──►│  n8n  ──►  PostgreSQL                                         │
+  Gmail inbox  ──poll──►│   │         ▲                                                 │
+                        │   │         │      Laravel (Inertia + Vue) ──► Nginx/SSL ─────┼──► Dashboard
+                        │   ├──► Qdrant (hybrid vectors)                                │
+                        │   └──► BM25 sparse encoder (FastAPI)                          │
+                        └───────────────┬───────────────────────────┬─────────────────┘
+                                        │ embeddings                 │ rerank
+                              ┌─────────▼───────── VPS 2 (inference) ─▼─────────┐
+                              │  Ollama (nomic-embed-text)   llama.cpp (bge)    │
+                              └─────────────────────────────────────────────────┘
+```
+
+The division of responsibility is deliberate: **n8n is a stateless ingestion/automation worker; Laravel owns the document lifecycle and is the sole writer to PostgreSQL.** Qdrant stores a filterable metadata mirror per chunk; PostgreSQL is the source of truth.
+
+---
 
 ## Features
 
-- **Lead Management** — Automatically capture and qualify leads from website forms, email, and other channels.
-- **Email Triage** — AI reads incoming emails, classifies intent, and drafts context-aware replies using your knowledge base.
-- **Knowledge Base (RAG)** — Vector search over your docs so the AI gives accurate, grounded answers.
-- **Human Approval Loop** — Nothing goes out without a human OK. Review, edit, or reject AI drafts from the dashboard.
-- **Workflow Automation** — n8n orchestrates multi-step processes (lead nurture sequences, follow-ups, escalations).
+- **Lead capture & scoring** — website form → dedupe → AI lead score (Hot/Warm/Cold) → personalized, KB-grounded welcome draft.
+- **Email triage** — Gmail trigger → AI category + priority classification → customer lookup/create → ticket → RAG-grounded reply draft.
+- **Knowledge base (RAG)** — upload PDF/DOCX/TXT/MD (with OCR fallback), versioned and authority-ranked, served via hybrid search + reranking.
+- **Approvals queue** — review, edit, approve, or reject every AI draft. Shows the exact source chunks used (doc / version / category / score).
+- **Operations dashboard** — real-time stats, 7-day lead chart, recent-activity feed, per-customer activity timeline.
+- **Live UI** — list pages and the notification bell refresh automatically (Inertia polling, tab-aware) without manual reloads.
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| Dashboard | Laravel 12 + Inertia.js (Vue 3) + Tailwind CSS |
-| Workflow Engine | n8n (self-hosted) |
-| Database | PostgreSQL |
-| Vector Store | Qdrant |
-| AI | OpenRouter (chat completions) + Ollama (self-hosted embeddings) |
-| Deployment | Docker Compose on a VPS |
+| Dashboard | Laravel 13 (PHP 8.4) + Inertia.js v2 + Vue 3 + Tailwind CSS |
+| Workflow engine | n8n (self-hosted) |
+| Database | PostgreSQL 15 |
+| Vector store | Qdrant 1.18 (named dense + sparse vectors, RRF fusion) |
+| Embeddings | Ollama `nomic-embed-text` (768-dim), self-hosted |
+| Sparse vectors | FastEmbed BM25 (FastAPI microservice) |
+| Reranker | `bge-reranker-v2-m3` (GGUF) served by llama.cpp `--reranking` |
+| Chat completions | OpenRouter (free-tier models, e.g. `gpt-oss-120b:free`) |
+| Deployment | Docker Compose on DigitalOcean (2 VPS) |
 
-## Project Structure
+## Project structure
 
 ```
-├── laravel-dashboard/   # Main application (Laravel 12)
-├── docker/              # Docker Compose & service configs
+├── laravel-dashboard/   # Main application (Laravel 13 + Inertia + Vue)
+├── docker/              # Docker Compose, Nginx, Dockerfile, sparse-encoder, Ollama+reranker
 └── README.md
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- PHP 8.2+
-- Composer
-- Node.js 20+
-- PostgreSQL 15+
-- Docker & Docker Compose (for deployment)
-
-### Local Development
+## Getting started (local)
 
 ```bash
-# Install PHP dependencies
 cd laravel-dashboard
-composer install
 
-# Install front-end dependencies
+composer install
 npm install
 
-# Copy environment file and generate app key
 cp .env.example .env
 php artisan key:generate
-
-# Run database migrations
 php artisan migrate
 
-# Start the dev server
+# two terminals:
 php artisan serve
-
-# In a separate terminal — compile front-end assets
 npm run dev
 ```
 
-### Docker Deployment
+### Docker deployment
 
 ```bash
 cd docker
-cp .env.example .env   # configure your secrets
+cp .env.example .env     # fill in real values (never commit this file)
 docker compose up -d
 ```
 
-## Environment Variables
+The VPS 2 inference services (Ollama + reranker) are deployed from `docker/ollama/docker-compose.yml`.
 
-Key variables to configure in `laravel-dashboard/.env`:
+## Configuration
+
+All secrets live in `.env` files (git-ignored) and in n8n's encrypted credential store — **never** in the repo. Copy the provided `.env.example` templates and fill in your own values:
 
 | Variable | Purpose |
 |----------|---------|
-| `DB_CONNECTION` | Database driver (pgsql) |
-| `DB_HOST` / `DB_PORT` | PostgreSQL connection |
-| `OPENROUTER_API_KEY` | OpenRouter API access (chat completions) |
-| `EMBED_VPS_URL` | Ollama embeddings endpoint (e.g. http://<embed-vps-ip>:11434) |
-| `QDRANT_HOST` | Qdrant vector DB endpoint |
-| `N8N_WEBHOOK_URL` | n8n webhook base URL |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | Database credentials |
+| `LARAVEL_APP_KEY` | Laravel app key (`php artisan key:generate`) |
+| `OPENROUTER_API_KEY` | Chat completions (entered as an n8n credential) |
+| `OLLAMA_HOST` | Embeddings endpoint (VPS 2, firewalled to VPS 1) |
+| `QDRANT_HOST` | Qdrant endpoint (internal Docker network) |
+| `N8N_INGEST_URL` / `N8N_WEBHOOK_SECRET` | Authenticated ingestion webhook |
+
+## What I learned building this
+
+- **Hybrid retrieval & RRF** — why dense vectors alone fail on exact terms, and how sparse (BM25) + dense fusion fixes it.
+- **Cross-encoders vs bi-encoders** — that a reranker is *not* an embedding model, why Ollama can't serve one, and how to serve a GGUF reranker with llama.cpp's `/v1/rerank` instead.
+- **Safe infra upgrades** — migrating Qdrant across multiple major versions (RocksDB → Gridstore) without losing data, using volume checks + snapshots.
+- **RAG data hygiene** — document versioning, authority weighting, active-only filtering, and effective-date guards to stop a knowledge base from quietly rotting.
+- **Workflow design** — keeping n8n stateless and giving one system (Laravel) ownership of the source of truth to avoid race conditions.
+- **Human-in-the-loop UX** — designing an approval flow that's fast to review but impossible to skip.
+
+## Scope & honesty notes
+
+This is a **portfolio / learning project**, not a commercial product:
+
+- Runs on free-tier OpenRouter chat models (swappable for paid models with one config change).
+- Single-tenant; no multi-tenant isolation.
+- Outbound email and the Gmail trigger run against a dedicated test inbox.
+- Built to demonstrate the engineering, not to be sold as-is.
 
 ## License
 
-This project is proprietary. All rights reserved.
+Personal portfolio project. Not licensed for redistribution.

@@ -111,7 +111,7 @@ const selectClass =
                 </StatCard>
                 <StatCard label="Resolved" :value="stats.resolved" accent="emerald">
                     <template #icon><CheckCircle2 class="h-3.5 w-3.5" /></template>
-                    <template #trend><span class="text-[10px] text-text-tertiary">Closed out</span></template>
+                    <template #trend><span class="text-[10px] text-text-tertiary">Resolved or closed</span></template>
                 </StatCard>
             </div>
 
