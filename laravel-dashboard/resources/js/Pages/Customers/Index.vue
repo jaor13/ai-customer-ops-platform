@@ -1,6 +1,6 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
-import { UserCircle, Search } from 'lucide-vue-next';
+import { Head, Link } from '@inertiajs/vue3';
+import { UserCircle, Search, ArrowUpRight } from 'lucide-vue-next';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
@@ -48,15 +48,29 @@ defineProps({
                                     <th class="px-5 py-3 text-left text-[9px] font-bold uppercase tracking-widest text-text-tertiary">Company</th>
                                     <th class="px-5 py-3 text-left text-[9px] font-bold uppercase tracking-widest text-text-tertiary">Phone</th>
                                     <th class="px-5 py-3 text-left text-[9px] font-bold uppercase tracking-widest text-text-tertiary">Created</th>
+                                    <th class="px-5 py-3 text-right text-[9px] font-bold uppercase tracking-widest text-text-tertiary">Timeline</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-border">
                                 <tr v-for="c in customers" :key="c.id" class="hover:bg-surface-hover transition">
-                                    <td class="px-5 py-3 font-bold text-text">{{ c.name }}</td>
+                                    <td class="px-5 py-3 font-bold text-text">
+                                        <Link :href="route('customers.show', c.id)" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                            {{ c.name }}
+                                        </Link>
+                                    </td>
                                     <td class="px-5 py-3 text-text-secondary">{{ c.email }}</td>
                                     <td class="px-5 py-3 text-text-secondary">{{ c.company || '—' }}</td>
                                     <td class="px-5 py-3 text-text-secondary">{{ c.phone || '—' }}</td>
                                     <td class="px-5 py-3 text-text-tertiary">{{ c.created_at }}</td>
+                                    <td class="px-5 py-3 text-right">
+                                        <Link
+                                            :href="route('customers.show', c.id)"
+                                            class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10"
+                                            :aria-label="`View ${c.name} timeline`"
+                                        >
+                                            <ArrowUpRight class="h-3.5 w-3.5" />
+                                        </Link>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

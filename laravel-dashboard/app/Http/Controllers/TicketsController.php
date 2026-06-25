@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FilterTicketsRequest;
+use App\Http\Requests\UpdateTicketStatusRequest;
 use App\Models\Ticket;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,9 +52,20 @@ class TicketsController extends Controller
                 'categories' => $this->distinctValues('category'),
                 'priorities' => ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
                 'statuses' => $this->distinctValues('status'),
+                'allStatuses' => UpdateTicketStatusRequest::STATUSES,
             ],
             'stats' => $this->stats(),
         ]);
+    }
+
+    /**
+     * Update a ticket's lifecycle status (manual resolve/close, etc.).
+     */
+    public function update(UpdateTicketStatusRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $ticket->update(['status' => $request->validated('status')]);
+
+        return back()->with('success', "Ticket #{$ticket->id} marked as ".str_replace('_', ' ', $ticket->status).'.');
     }
 
     /**
@@ -80,7 +93,7 @@ class TicketsController extends Controller
         $row = Ticket::query()
             ->selectRaw('COUNT(*) AS total')
             ->selectRaw("COUNT(*) FILTER (WHERE status = 'open') AS open")
-            ->selectRaw("COUNT(*) FILTER (WHERE priority IN ('HIGH','CRITICAL')) AS urgent")
+            ->selectRaw("COUNT(*) FILTER (WHERE priority IN ('HIGH','CRITICAL') AND status IN ('open','pending_response')) AS urgent")
             ->selectRaw("COUNT(*) FILTER (WHERE status = 'resolved') AS resolved")
             ->first();
 

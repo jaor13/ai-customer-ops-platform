@@ -11,7 +11,7 @@ import StatCard from '@/Components/StatCard.vue';
 const props = defineProps({
     tickets: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({ search: '', category: '', priority: '', status: '' }) },
-    options: { type: Object, default: () => ({ categories: [], priorities: [], statuses: [] }) },
+    options: { type: Object, default: () => ({ categories: [], priorities: [], statuses: [], allStatuses: [] }) },
     stats: { type: Object, default: () => ({ total: 0, open: 0, urgent: 0, resolved: 0 }) },
 });
 
@@ -57,7 +57,28 @@ const clearFilters = () => {
 usePoll(20000, { only: ['tickets', 'stats'] });
 
 const priorityVariant = (p) => ({ CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'default', LOW: 'secondary' }[p] || 'secondary');
-const statusVariant = (s) => ({ open: 'warning', pending_response: 'default', resolved: 'success', closed: 'secondary' }[s] || 'secondary');
+
+const statusColor = (s) => ({
+    open: 'text-amber-600 dark:text-amber-400',
+    pending_response: 'text-blue-600 dark:text-blue-400',
+    resolved: 'text-emerald-600 dark:text-emerald-400',
+    closed: 'text-text-tertiary',
+}[s] || 'text-text');
+
+const updatingId = ref(null);
+const updateStatus = (ticket, status) => {
+    if (status === ticket.status) return;
+    updatingId.value = ticket.id;
+    router.patch(
+        route('tickets.update', ticket.id),
+        { status },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => (updatingId.value = null),
+        },
+    );
+};
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '');
 
@@ -179,7 +200,18 @@ const selectClass =
                                     </td>
                                     <td class="px-5 py-3 align-top"><Badge variant="secondary">{{ t.category || 'Uncategorized' }}</Badge></td>
                                     <td class="px-5 py-3 align-top"><Badge :variant="priorityVariant(t.priority)">{{ t.priority }}</Badge></td>
-                                    <td class="px-5 py-3 align-top"><Badge :variant="statusVariant(t.status)">{{ capitalize(t.status) }}</Badge></td>
+                                    <td class="px-5 py-3 align-top">
+                                        <select
+                                            :value="t.status"
+                                            :disabled="updatingId === t.id"
+                                            @change="updateStatus(t, $event.target.value)"
+                                            :class="statusColor(t.status)"
+                                            class="rounded-lg border border-border bg-white text-[10px] font-bold px-2 py-1 focus:border-blue-500 focus:ring-blue-500/20 focus:ring-2 cursor-pointer disabled:opacity-50 dark:bg-surface"
+                                            aria-label="Change ticket status"
+                                        >
+                                            <option v-for="s in options.allStatuses" :key="s" :value="s">{{ capitalize(s) }}</option>
+                                        </select>
+                                    </td>
                                     <td class="px-5 py-3 text-text-tertiary align-top">{{ t.created_at }}</td>
                                 </tr>
                             </tbody>

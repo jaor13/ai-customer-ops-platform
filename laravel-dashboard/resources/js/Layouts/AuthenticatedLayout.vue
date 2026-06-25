@@ -52,6 +52,10 @@ const pendingApprovalsCount = computed(
     () => page.props.pendingApprovalsCount ?? 0,
 );
 
+// ── Header notifications (shared from server) ──────────────────
+const notifications = computed(() => page.props.notifications ?? []);
+const notifIcon = (type) => (type === 'ticket' ? TicketIcon : ShieldCheck);
+
 // ── Navigation (matches docs/07-laravel-dashboard.md) ──────────
 const navigation = [
     { name: 'Dashboard',      route: 'dashboard',           icon: LayoutDashboard, group: 'Operations' },
@@ -248,7 +252,7 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                         >
                             <Bell class="h-4 w-4" />
                             <span
-                                v-if="pendingApprovalsCount > 0"
+                                v-if="notifications.length > 0"
                                 class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500"
                             />
                         </button>
@@ -256,15 +260,42 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside));
                         <transition name="fade">
                             <div
                                 v-if="showNotificationDropdown"
-                                class="absolute right-0 mt-2 z-50 w-72 rounded-2xl border border-border bg-white/95 backdrop-blur-md p-4 shadow-xl dark:bg-surface/95"
+                                class="absolute right-0 mt-2 z-50 w-80 rounded-2xl border border-border bg-white/95 backdrop-blur-md p-4 shadow-xl dark:bg-surface/95"
                             >
-                                <div class="flex items-center justify-between border-b border-border pb-2.5 mb-3">
+                                <div class="flex items-center justify-between border-b border-border pb-2.5 mb-2">
                                     <h3 class="text-xs font-bold text-text">Notifications</h3>
-                                    <span v-if="pendingApprovalsCount > 0" class="text-[9px] font-bold text-blue-600 dark:text-blue-400">
-                                        {{ pendingApprovalsCount }} pending
+                                    <span v-if="notifications.length > 0" class="text-[9px] font-bold text-blue-600 dark:text-blue-400">
+                                        {{ notifications.length }} new
                                     </span>
                                 </div>
-                                <div class="py-4 flex flex-col items-center justify-center text-center gap-2">
+
+                                <!-- Notification list -->
+                                <ul v-if="notifications.length > 0" class="space-y-1 max-h-80 overflow-y-auto">
+                                    <li v-for="n in notifications" :key="n.id">
+                                        <Link
+                                            :href="route(n.route)"
+                                            class="flex items-start gap-3 rounded-xl p-2 hover:bg-surface-hover transition"
+                                            @click="showNotificationDropdown = false"
+                                        >
+                                            <div
+                                                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                                                :class="n.type === 'ticket'
+                                                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
+                                                    : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'"
+                                            >
+                                                <component :is="notifIcon(n.type)" class="h-3.5 w-3.5" />
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-[11px] font-bold text-text leading-tight">{{ n.title }}</p>
+                                                <p class="text-[10px] text-text-secondary truncate">{{ n.detail }}</p>
+                                                <p class="text-[9px] text-text-tertiary mt-0.5">{{ n.time }}</p>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                </ul>
+
+                                <!-- Empty state -->
+                                <div v-else class="py-4 flex flex-col items-center justify-center text-center gap-2">
                                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-surface-hover text-text-tertiary">
                                         <Bell class="h-5 w-5" />
                                     </div>

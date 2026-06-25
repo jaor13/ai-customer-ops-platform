@@ -28,7 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pipeline
     Route::get('/leads', [LeadsController::class, 'index'])->name('leads.index');
     Route::get('/tickets', [TicketsController::class, 'index'])->name('tickets.index');
+    Route::patch('/tickets/{ticket}', [TicketsController::class, 'update'])->name('tickets.update');
     Route::get('/customers', [CustomersController::class, 'index'])->name('customers.index');
+    Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
 
     // Resources
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])->name('knowledge-base.index');
