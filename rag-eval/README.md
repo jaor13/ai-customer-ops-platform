@@ -47,8 +47,16 @@ so it works against the n8n test webhook, a local tunnel, or any compatible endp
 
 ## Setup
 
+The only dependency is `requests`, which is often already installed.
+
 ```bash
 cd rag-eval
+pip install -r requirements.txt          # or: sudo apt install python3-requests
+```
+
+Optional, if you prefer an isolated environment:
+
+```bash
 python -m venv .venv && .venv\Scripts\activate   # Windows
 # source .venv/bin/activate                       # macOS/Linux
 pip install -r requirements.txt
@@ -78,6 +86,7 @@ python evaluate.py --fail-under 0.8
 | `--output-dir` | `results` | Where JSON + markdown reports are written |
 | `--secret` | `$RAG_SECRET` | Optional `X-Webhook-Secret` header value |
 | `--timeout` | `60` | Per-request timeout (s). The reranker cold-starts ~30s on first call |
+| `--delay` | `0` | Seconds to sleep between requests. Use ~5 to avoid free-tier LLM rate limits |
 | `--fail-under` | _none_ | Exit non-zero if overall pass rate is below this fraction (for CI) |
 
 ## The golden set

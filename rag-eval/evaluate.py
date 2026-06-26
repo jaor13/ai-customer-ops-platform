@@ -323,6 +323,9 @@ def main() -> int:
                         help="Optional X-Webhook-Secret header value (or set RAG_SECRET).")
     parser.add_argument("--timeout", type=int, default=60,
                         help="Per-request timeout in seconds (default: 60).")
+    parser.add_argument("--delay", type=float, default=0.0,
+                        help="Seconds to sleep between requests. Use a few seconds "
+                             "(e.g. 5) to avoid free-tier LLM rate limits.")
     parser.add_argument("--fail-under", type=float, default=None,
                         help="Exit non-zero if overall pass rate is below this "
                              "fraction (e.g. 0.8). Useful for CI.")
@@ -346,6 +349,8 @@ def main() -> int:
         flag = "PASS" if r["passed"] else ("ERR" if r["error"] else "FAIL")
         print(f"  [{i}/{len(cases)}] {r['id'][:32]:<34} {flag}")
         results.append(r)
+        if args.delay and i < len(cases):
+            time.sleep(args.delay)
 
     summary = aggregate(results, args.k)
     print_console(summary, results, args.k)
