@@ -42,6 +42,38 @@ query
 
 ---
 
+## Evaluation
+
+Retrieval quality is **measured, not assumed.** A small Python evaluation harness
+(`rag-eval/`) runs a labelled golden set of questions through the live pipeline and
+reports standard information-retrieval metrics — the safety net that catches a quality
+regression after any change to chunking, the embedding model, fusion, or the reranker.
+
+Latest run (14 cases against the deployed system, all passing):
+
+| Metric | Result |
+|---|---|
+| Hit Rate @5 (Recall@5) | 100% |
+| MRR | 0.96 |
+| Precision @5 | 78% |
+| Answer accuracy | 100% |
+| Hallucination resistance (out-of-scope refusals) | 100% |
+| Stale-version leaks | 0 |
+
+Beyond raw recall, the harness guards the two hardest production-RAG failure modes:
+
+- **Versioning correctness** — pricing cases assert `version = 2`; the run confirmed
+  **zero superseded v1 chunks** reached retrieval after a v1→v2 supersede.
+- **Hallucination resistance** — out-of-scope questions (e.g. "what's the weather in
+  Tokyo?") must be **refused**, not answered. 100% refusal in the latest run.
+
+During development the harness immediately earned its keep: it flagged a pricing case
+whose expected answer was the **old V1 price ($49)** while the system correctly returned
+the **current V2 price ($69)** — catching stale test data and proving the supersede
+pipeline works end to end. See [`rag-eval/`](rag-eval/) for metric definitions and usage.
+
+---
+
 ## Architecture
 
 Two VPS, fully self-hosted models (zero per-call AI cost for embeddings & reranking):
