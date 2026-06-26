@@ -1,0 +1,111 @@
+{
+  "description": "Golden evaluation set for the AI Customer Ops Platform RAG pipeline. Each case has a question, the doc_key(s) that SHOULD ground the answer (expected_doc_keys), an optional expected_version (to verify active-version retrieval / supersede correctness), and optional answer_must_include substrings for a lightweight answer-correctness check. Out-of-scope cases have empty expected_doc_keys and assert the system refuses to hallucinate.",
+  "notes": "doc_keys reference the fictional 'Nexus CRM' sample/demo knowledge base used for this portfolio project (public, made-up content - no real or customer data). Matching is case-insensitive and substring-based. Edit expected_doc_keys to match your own knowledge_documents.doc_key values. The pricing cases set expected_version=2 to verify the supersede/active-version filter (the harness fails if a superseded v1 chunk is ever retrieved).",
+  "cases": [
+    {
+      "id": "pricing-starter",
+      "question": "How much does the Starter plan cost per month?",
+      "expected_doc_keys": ["nexus_crm_pricing"],
+      "expected_version": 2,
+      "expected_category": "pricing",
+      "answer_must_include": ["49"]
+    },
+    {
+      "id": "pricing-growth",
+      "question": "What is the price of the Growth tier?",
+      "expected_doc_keys": ["nexus_crm_pricing"],
+      "expected_version": 2,
+      "expected_category": "pricing",
+      "answer_must_include": ["149"]
+    },
+    {
+      "id": "pricing-enterprise",
+      "question": "How is Enterprise pricing handled?",
+      "expected_doc_keys": ["nexus_crm_pricing"],
+      "expected_version": 2,
+      "expected_category": "pricing",
+      "answer_must_include": ["custom"]
+    },
+    {
+      "id": "refund-trial",
+      "question": "Is there a free trial and how long is it?",
+      "expected_doc_keys": ["nexus_crm_refund_policy"],
+      "expected_category": "policy",
+      "answer_must_include": ["14"]
+    },
+    {
+      "id": "refund-eligibility",
+      "question": "Can I get a refund after I cancel my subscription?",
+      "expected_doc_keys": ["nexus_crm_refund_policy"],
+      "expected_category": "policy",
+      "answer_must_include": ["refund"]
+    },
+    {
+      "id": "refund-cancel-how",
+      "question": "How do I cancel my subscription?",
+      "expected_doc_keys": ["nexus_crm_refund_policy"],
+      "expected_category": "policy",
+      "answer_must_include": ["cancel"]
+    },
+    {
+      "id": "faq-data-export",
+      "question": "How do I export my data?",
+      "expected_doc_keys": ["nexus_crm_faq"],
+      "expected_category": "faq",
+      "answer_must_include": ["export"]
+    },
+    {
+      "id": "faq-user-roles",
+      "question": "What user roles are available in the product?",
+      "expected_doc_keys": ["nexus_crm_faq"],
+      "expected_category": "faq",
+      "answer_must_include": ["role"]
+    },
+    {
+      "id": "faq-integrations",
+      "question": "What integrations are supported?",
+      "expected_doc_keys": ["nexus_crm_faq"],
+      "expected_category": "faq",
+      "answer_must_include": ["integration"]
+    },
+    {
+      "id": "sop-billing-complaint",
+      "question": "What is the procedure for handling a billing complaint?",
+      "expected_doc_keys": ["nexus_crm_billing_sop"],
+      "expected_category": "sop",
+      "answer_must_include": ["billing"]
+    },
+    {
+      "id": "sop-escalation",
+      "question": "When should a billing issue be escalated?",
+      "expected_doc_keys": ["nexus_crm_billing_sop"],
+      "expected_category": "sop",
+      "answer_must_include": ["escalat"]
+    },
+    {
+      "id": "sop-credit",
+      "question": "How are account credits issued for billing problems?",
+      "expected_doc_keys": ["nexus_crm_billing_sop"],
+      "expected_category": "sop",
+      "answer_must_include": ["credit"]
+    },
+    {
+      "id": "out-of-scope-weather",
+      "question": "What is the weather like in Tokyo today?",
+      "expected_doc_keys": [],
+      "expected_category": null,
+      "answer_must_include": ["don't", "not", "no information", "unable", "can't", "cannot"],
+      "answer_match_mode": "any",
+      "is_negative": true
+    },
+    {
+      "id": "out-of-scope-sports",
+      "question": "Who won the last World Cup final?",
+      "expected_doc_keys": [],
+      "expected_category": null,
+      "answer_must_include": ["don't", "not", "no information", "unable", "can't", "cannot"],
+      "answer_match_mode": "any",
+      "is_negative": true
+    }
+  ]
+}
