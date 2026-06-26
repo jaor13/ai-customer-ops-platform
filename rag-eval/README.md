@@ -47,19 +47,11 @@ so it works against the n8n test webhook, a local tunnel, or any compatible endp
 
 ## Setup
 
-The only dependency is `requests`, which is often already installed.
+The only dependency is `requests` (a single, common library — often already installed):
 
 ```bash
 cd rag-eval
 pip install -r requirements.txt          # or: sudo apt install python3-requests
-```
-
-Optional, if you prefer an isolated environment:
-
-```bash
-python -m venv .venv && .venv\Scripts\activate   # Windows
-# source .venv/bin/activate                       # macOS/Linux
-pip install -r requirements.txt
 ```
 
 ## Usage
