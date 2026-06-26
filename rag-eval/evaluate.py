@@ -99,6 +99,24 @@ def answer_check(answer: str, must_include: list[str], mode: str) -> bool:
     return len(hits) == len(must_include) if mode == "all" else len(hits) > 0
 
 
+def explain(r: dict[str, Any]) -> str:
+    """One-line, human-readable reason for a case's result (for --verbose)."""
+    if r["error"]:
+        return f"ERROR: {r['error']}"
+    bits = []
+    if not r["is_negative"]:
+        bits.append(f"hit={'yes' if r['hit'] else 'NO'}")
+        bits.append(f"rank={r['rank'] or '-'}")
+        if r["stale_versions"]:
+            bits.append(f"STALE_VERSIONS={r['stale_versions']}")
+        else:
+            bits.append("version_ok")
+    bits.append(f"answer_ok={'yes' if r['answer_ok'] else 'NO'}")
+    bits.append(f"retrieved={r['retrieved_doc_keys'] or '[]'}")
+    detail = "  ".join(bits)
+    return f"{detail}\n        answer: {r['answer_preview']!r}"
+
+
 # --------------------------------------------------------------------------- #
 # Core evaluation
 # --------------------------------------------------------------------------- #
@@ -326,6 +344,9 @@ def main() -> int:
     parser.add_argument("--delay", type=float, default=0.0,
                         help="Seconds to sleep between requests. Use a few seconds "
                              "(e.g. 5) to avoid free-tier LLM rate limits.")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Print per-case detail (hit/rank/version/answer + answer "
+                             "preview) live as it runs - useful for debugging failures.")
     parser.add_argument("--fail-under", type=float, default=None,
                         help="Exit non-zero if overall pass rate is below this "
                              "fraction (e.g. 0.8). Useful for CI.")
@@ -344,13 +365,22 @@ def main() -> int:
 
     print(f"Evaluating {len(cases)} cases against {args.endpoint} (k={args.k}) ...")
     results = []
-    for i, case in enumerate(cases, start=1):
-        r = evaluate_case(case, args.endpoint, args.k, args.secret, args.timeout)
-        flag = "PASS" if r["passed"] else ("ERR" if r["error"] else "FAIL")
-        print(f"  [{i}/{len(cases)}] {r['id'][:32]:<34} {flag}")
-        results.append(r)
-        if args.delay and i < len(cases):
-            time.sleep(args.delay)
+    try:
+        for i, case in enumerate(cases, start=1):
+            r = evaluate_case(case, args.endpoint, args.k, args.secret, args.timeout)
+            flag = "PASS" if r["passed"] else ("ERR" if r["error"] else "FAIL")
+            print(f"  [{i}/{len(cases)}] {r['id'][:32]:<34} {flag}")
+            if args.verbose:
+                print(f"        {explain(r)}")
+            results.append(r)
+            if args.delay and i < len(cases):
+                time.sleep(args.delay)
+    except KeyboardInterrupt:
+        print("\nInterrupted - reporting on the cases completed so far ...")
+
+    if not results:
+        print("No cases completed; nothing to report.")
+        return 1
 
     summary = aggregate(results, args.k)
     print_console(summary, results, args.k)

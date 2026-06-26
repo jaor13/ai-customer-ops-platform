@@ -8,7 +8,7 @@
       "expected_doc_keys": ["nexus_crm_pricing"],
       "expected_version": 2,
       "expected_category": "pricing",
-      "answer_must_include": ["49"]
+      "answer_must_include": ["69"]
     },
     {
       "id": "pricing-growth",
@@ -16,7 +16,7 @@
       "expected_doc_keys": ["nexus_crm_pricing"],
       "expected_version": 2,
       "expected_category": "pricing",
-      "answer_must_include": ["149"]
+      "answer_must_include": ["199"]
     },
     {
       "id": "pricing-enterprise",
