@@ -76,7 +76,7 @@ class HandleInertiaRequests extends Middleware
             ]);
 
         $tickets = Ticket::whereIn('priority', ['HIGH', 'CRITICAL'])
-            ->where('status', 'open')
+            ->whereNotIn('status', ['resolved', 'closed'])
             ->orderByDesc('created_at')
             ->limit(5)
             ->get(['id', 'subject', 'priority', 'created_at'])

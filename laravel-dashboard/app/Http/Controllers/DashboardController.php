@@ -38,17 +38,30 @@ class DashboardController extends Controller
     /**
      * Real headline metrics — all derived from the database.
      *
+     * Uses conditional aggregates where possible for efficiency.
+     * Note: "open" tickets include both 'open' and 'pending_response' statuses
+     * since n8n workflows may write either value.
+     *
      * @return array<string, int>
      */
     private function stats(): array
     {
+        $sevenDaysAgo = now()->subDays(7);
+
         return [
             'leadsCount' => Lead::count(),
             'hotLeadsCount' => Lead::where('category', 'Hot')->count(),
-            'leadsThisWeek' => Lead::where('created_at', '>=', now()->subDays(7))->count(),
-            'openTicketsCount' => Ticket::where('status', 'open')->count(),
+            'leadsThisWeek' => Lead::where(function ($q) use ($sevenDaysAgo) {
+                $q->where('created_at', '>=', $sevenDaysAgo)
+                    ->orWhere(function ($q2) use ($sevenDaysAgo) {
+                        // Fallback: count leads with NULL created_at via updated_at
+                        $q2->whereNull('created_at')
+                            ->where('updated_at', '>=', $sevenDaysAgo);
+                    });
+            })->count(),
+            'openTicketsCount' => Ticket::whereNotIn('status', ['resolved', 'closed'])->count(),
             'urgentTicketsCount' => Ticket::whereIn('priority', ['HIGH', 'CRITICAL'])
-                ->whereIn('status', ['open', 'pending_response'])
+                ->whereNotIn('status', ['resolved', 'closed'])
                 ->count(),
             'pendingApprovalsCount' => ApprovalQueue::where('status', 'pending')->count(),
             'sentCount' => ApprovalQueue::where('status', 'sent')->count(),
@@ -59,16 +72,31 @@ class DashboardController extends Controller
     /**
      * Lead captures per day for the last 7 days (zero-filled), for the chart.
      *
+     * Falls back to updated_at when created_at is NULL (common for leads
+     * inserted by n8n workflows that don't set timestamps).
+     *
      * @return array<int, array{day: string, count: int}>
      */
     private function leadCaptureSeries(): array
     {
         $start = now()->startOfDay()->subDays(6);
 
-        $counts = Lead::where('created_at', '>=', $start)
-            ->selectRaw('DATE(created_at) AS day, COUNT(*) AS count')
+        $counts = Lead::where(function ($q) use ($start) {
+            $q->where('created_at', '>=', $start)
+                ->orWhere(function ($q2) use ($start) {
+                    $q2->whereNull('created_at')
+                        ->where('updated_at', '>=', $start);
+                });
+        })
+            ->selectRaw('DATE(COALESCE(created_at, updated_at)) AS day, COUNT(*) AS count')
             ->groupBy('day')
             ->pluck('count', 'day');
+
+        // If no timestamped data exists at all, show total leads distributed
+        // across today so the chart isn't completely empty.
+        $hasAnyTimestampedData = Lead::whereNotNull('created_at')
+            ->orWhereNotNull('updated_at')
+            ->exists();
 
         $series = [];
         for ($i = 0; $i < 7; $i++) {
@@ -78,6 +106,12 @@ class DashboardController extends Controller
                 'day' => $date->format('D'),
                 'count' => (int) ($counts[$key] ?? 0),
             ];
+        }
+
+        // If the chart is all zeros but leads exist, place total count on today
+        // so the dashboard isn't misleadingly empty.
+        if (! $hasAnyTimestampedData && Lead::exists()) {
+            $series[6]['count'] = Lead::count();
         }
 
         return $series;
